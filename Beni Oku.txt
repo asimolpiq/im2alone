@@ -1,0 +1,4 @@
+~Veritabanı bağlantısı kurmak için includes altındaki db_connect.php de kendi veritabanı bilgilerinizi giriniz.
+~Canlı Test için https://im2alone.com sitesini ziyaret ediniz
+
+Hazırlayan: Alpay GÜROĞLU
