@@ -8,10 +8,13 @@ u'r not alone. im with u :)
 
 ## ScreenShots
 
-[![ScreenShot](https://github.com/asimolpiq/weatergoo/blob/main/screenshots/1.png)
+[![ScreenShot](https://github.com/asimolpiq/im2alone/blob/main/screenshots/1.png?raw=true)
 
 
-[![ScreenShot](https://github.com/asimolpiq/weatergoo/blob/main/screenshots/2.png)
+[![ScreenShot](https://github.com/asimolpiq/im2alone/blob/main/screenshots/2.png?raw=true)
 
 
-[![ScreenShot](https://github.com/asimolpiq/weatergoo/blob/main/screenshots/3.png)
+[![ScreenShot](https://github.com/asimolpiq/im2alone/blob/main/screenshots/3.png?raw=true)
+
+
+[![ScreenShot](https://github.com/asimolpiq/im2alone/blob/main/screenshots/4.png?raw=true)
