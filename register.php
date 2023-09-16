@@ -122,55 +122,10 @@ function GetIP()
                 } else {
                   if (!$error) {//genel kontrollerden geçtiyse kaydet
                     $user_save = "INSERT INTO users (username,realname,password,email,gender,birthday,permission,status) 
-                VALUES ('$username','$realname','$password','$email','$gender','$birthday',0,0)";
+                VALUES ('$username','$realname','$password','$email','$gender','$birthday',0,1)";
                     if ($conn->query($user_save)) {
-                      $last_id = $conn->insert_id;
-                      $currentdate =  date("Y/m/d");
-                      $ip_adresi = GetIP();
-                      $log_save = mysqli_query($conn, "INSERT INTO log (userid,date,ip) VALUES ('$last_id','$currentdate','$ip_adresi')");
-                      if (isset($log_save)) {
-                        $token= bin2hex(random_bytes(16));
-                        $mail = new PHPMailer(true);
-                        try{
-                          $mail->SMTPDebug = 0; // hata ayiklama: 1 = hata ve mesaj, 2 = sadece mesaj
-                          $mail->isSMTP(); 
-                          $mail->SMTPAuth = true;
-                          $mail->SMTPSecure = 'ssl'; // Güvenli baglanti icin ssl normal baglanti icin tls
-                          $mail->Host = "mail.im2alone.com"; // Mail sunucusuna ismi
-                          $mail->Port = 465; // Gucenli baglanti icin 465 Normal baglanti icin 587
-                          $mail->IsHTML(true);
-                          $mail->SetLanguage("en", "phpmailer/language");
-                          $mail->CharSet  ="utf-8";
-                          $mail->Username = "info@im2alone.com"; // Mail adresimizin kullanicı adi
-                          $mail->Password = "MAİL PASSWORD"; // Mail adresimizin sifresi
-                          $mail->SetFrom("info@im2alone.com", "Confirm System"); // Mail attigimizda gorulecek ismimiz
-                          $mail->AddAddress($email); // Maili gonderecegimiz kisi yani alici
-                          $mail->Subject = "Please confirm your account."; // Konu basligi
-                          $mail->Body = "Please click to link and confirm your account. <a href='https://im2alone.com/confirm.php?username=$username&token=$token'>Click Me!<a>"; // Mailin icerigi
-                          $mail->smtpConnect([
-                            'ssl' => [
-                            'verify_peer' => false,
-                            'verify_peer_name' => false,
-                            'allow_self_signed' => true
-                            ]
-                          ]);
-                          if(!$mail->Send()){
-                              echo "Mailer Error: ".$mail->ErrorInfo;
-                          } else {
-                            mysqli_query($conn,"INSERT INTO tokens(username,token) VALUES ('$username','$token')");
                             echo "<div class='alert alert-success' role='alert'> User Create Succesful! </div>";
                             header('Refresh:3; url=index.php');
-                          }
-                          
-                        }
-                        catch(Exception $e){
-                          print($e);
-                        }
-                        
-                      } else {
-                        echo "<div class='alert alert-danger' role='alert'> User Create Failed! </div>";
-                        header("Refresh:3; url=register.php");
-                      }
                     } else {
                       echo "<div class='alert alert-danger' role='alert'> User Create Failed! </div>";
                       header("Refresh:3; url=register.php");

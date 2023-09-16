@@ -1,8 +1,5 @@
 <?php
 $im2alone_user = $_SESSION["im2alone_user"];
-if($im2alone_user['status']==0){
-  header("Location:logout.php");
-}
 $my_id = $im2alone_user['id'];
 $pp = $im2alone_user['pp'];
 if($pp=="") {$pp="dist/img/img1.jpg";}

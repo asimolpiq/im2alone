@@ -1,0 +1,29 @@
+[29-Jul-2023 05:17:37 UTC] PHP Warning:  require(includes/db_connect.php): failed to open stream: No such file or directory in /home3/alpayguroglu/im2alone.com/api/v1/login.php on line 3
+[29-Jul-2023 05:17:37 UTC] PHP Warning:  require(includes/db_connect.php): failed to open stream: No such file or directory in /home3/alpayguroglu/im2alone.com/api/v1/login.php on line 3
+[29-Jul-2023 05:17:37 UTC] PHP Fatal error:  require(): Failed opening required 'includes/db_connect.php' (include_path='.:/opt/cpanel/ea-php74/root/usr/share/pear') in /home3/alpayguroglu/im2alone.com/api/v1/login.php on line 3
+[29-Jul-2023 08:24:34 Europe/Istanbul] PHP Fatal error:  Uncaught Error: Object of class mysqli_result could not be converted to string in /home3/alpayguroglu/im2alone.com/api/v1/login.php:45
+Stack trace:
+#0 /home3/alpayguroglu/im2alone.com/api/v1/login.php(74): login(Object(mysqli), '', '74be16979710d4c...')
+#1 {main}
+  thrown in /home3/alpayguroglu/im2alone.com/api/v1/login.php on line 45
+[29-Jul-2023 08:25:00 Europe/Istanbul] PHP Fatal error:  Uncaught Error: Cannot use object of type mysqli_result as array in /home3/alpayguroglu/im2alone.com/api/v1/login.php:45
+Stack trace:
+#0 /home3/alpayguroglu/im2alone.com/api/v1/login.php(74): login(Object(mysqli), '', '74be16979710d4c...')
+#1 {main}
+  thrown in /home3/alpayguroglu/im2alone.com/api/v1/login.php on line 45
+[29-Jul-2023 08:28:35 Europe/Istanbul] PHP Fatal error:  Uncaught Error: Call to undefined function jsonDecode() in /home3/alpayguroglu/im2alone.com/api/v1/login.php:73
+Stack trace:
+#0 {main}
+  thrown in /home3/alpayguroglu/im2alone.com/api/v1/login.php on line 73
+[29-Jul-2023 08:29:43 Europe/Istanbul] PHP Warning:  Use of undefined constant username - assumed 'username' (this will throw an Error in a future version of PHP) in /home3/alpayguroglu/im2alone.com/api/v1/login.php on line 73
+[29-Jul-2023 08:29:45 Europe/Istanbul] PHP Warning:  Use of undefined constant username - assumed 'username' (this will throw an Error in a future version of PHP) in /home3/alpayguroglu/im2alone.com/api/v1/login.php on line 73
+[29-Jul-2023 08:32:46 Europe/Istanbul] PHP Fatal error:  Cannot redeclare GetIP() (previously declared in /home3/alpayguroglu/im2alone.com/api/v1/login.php:11) in /home3/alpayguroglu/im2alone.com/api/v1/login.php on line 11
+[29-Jul-2023 08:37:50 Europe/Istanbul] PHP Fatal error:  Cannot redeclare GetIP() (previously declared in /home3/alpayguroglu/im2alone.com/api/v1/login.php:11) in /home3/alpayguroglu/im2alone.com/api/v1/login.php on line 11
+[29-Jul-2023 08:38:17 Europe/Istanbul] PHP Fatal error:  Uncaught Error: Call to undefined function GetIP() in /home3/alpayguroglu/im2alone.com/api/v1/login.php:36
+Stack trace:
+#0 /home3/alpayguroglu/im2alone.com/api/v1/login.php(57): login(Object(mysqli), 'root', 'fcfc585186a9d31...')
+#1 {main}
+  thrown in /home3/alpayguroglu/im2alone.com/api/v1/login.php on line 36
+[29-Jul-2023 05:43:12 UTC] PHP Warning:  require(includes/db_connect.php): failed to open stream: No such file or directory in /home3/alpayguroglu/im2alone.com/api/v1/login.php on line 3
+[29-Jul-2023 05:43:12 UTC] PHP Warning:  require(includes/db_connect.php): failed to open stream: No such file or directory in /home3/alpayguroglu/im2alone.com/api/v1/login.php on line 3
+[29-Jul-2023 05:43:12 UTC] PHP Fatal error:  require(): Failed opening required 'includes/db_connect.php' (include_path='.:/opt/cpanel/ea-php74/root/usr/share/pear') in /home3/alpayguroglu/im2alone.com/api/v1/login.php on line 3
