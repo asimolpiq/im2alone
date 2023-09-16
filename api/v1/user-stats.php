@@ -15,9 +15,10 @@ require('../../includes/db_connect.php');
 $headers = apache_request_headers();
 if( $_SERVER['REQUEST_METHOD'] === 'POST'){
     $data = json_decode(file_get_contents('php://input'), true); 
-if(isset($headers['authorization'])){
+    if (isset($headers['Authorization'])) {
+      
     if (isset($data['userID'])) { //kullanıcı id var mı?
-        $token = $headers['authorization']; //kullanıcının giriş tokeni
+        $token = $headers['Authorization']; //kullanıcının giriş tokeni
 
         $userID = $data['userID']; // kullanıcının  idsi
 

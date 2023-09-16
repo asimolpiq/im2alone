@@ -21,8 +21,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $search_text = htmlspecialchars($search_text);
 
         $headers = apache_request_headers();
-        if (isset($headers['authorization'])) {
-            $token = $headers['authorization'];
+        if (isset($headers['Authorization'])) {
+            $token = $headers['Authorization'];
             $result =  tokenLoginControl($conn, $token);
             if ($result != null) {
                 $searchResponse = getUserSearch($conn, $search_text);

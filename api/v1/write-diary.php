@@ -28,8 +28,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $headers = apache_request_headers();
-    if (isset($headers['authorization'])) {
-        $token = $headers['authorization'];
+    if (isset($headers['Authorization'])) {
+        $token = $headers['Authorization'];
         $result =  tokenLoginControl($conn, $token);
         if ($result != null) {
             $user_id = $result['id'];

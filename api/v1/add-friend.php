@@ -17,8 +17,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $friendID = htmlspecialchars($friendID);
 
         $headers = apache_request_headers();
-        if (isset($headers['authorization'])) {
-            $token = $headers['authorization'];
+        if (isset($headers['Authorization'])) {
+            $token = $headers['Authorization'];
             $result =  tokenLoginControl($conn, $token);
             if ($result != null) {
                 $myID = $result['id'];
