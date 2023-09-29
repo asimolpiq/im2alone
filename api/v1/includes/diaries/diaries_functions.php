@@ -25,14 +25,14 @@ function getMyDiaries($conn, $user_id)
   }
 }
 
-function getAllFeed($conn, $user_id)
+function getAllFeed($conn, $my_id)
 {
   $date = null;
   $friendid = null;
   $friend_name = null;
   $arr = [];
 
-  $query = "SELECT * FROM friends WHERE userid1='$user_id' OR userid2='$user_id' ORDER BY id DESC";
+  $query = "SELECT * FROM friends WHERE userid1='$my_id' OR userid2='$my_id' ORDER BY id DESC";
   $result = mysqli_query($conn, $query);
   $count = mysqli_num_rows($result);
   if ($count != 0) { // ı have a friend. 
@@ -40,7 +40,7 @@ function getAllFeed($conn, $user_id)
       $userid1 = $friend_rows['userid1'];
       $userid2 = $friend_rows['userid2'];
 
-      if ($userid1 == $user_id) { //whic my friend id?
+      if ($userid1 == $my_id) { //whic my friend id?
         $friendid = $userid2;
       } else {
         $friendid = $userid1;
@@ -54,7 +54,14 @@ function getAllFeed($conn, $user_id)
           $date = $satir['date'];
           $friend_name = mysqli_query($conn, "SELECT * FROM users WHERE id ='$friendid'");
           $friend_name = mysqli_fetch_array($friend_name);
-          $friend_name = $friend_name['username'];
+          if ($friend_name['pp'] == "") {
+            $pp = null;
+          }
+          else{
+            $pp = utf8ize($friend_name['pp']) ;
+          }
+          $friend_name = utf8ize($friend_name['username']) ;
+    
           $content = $satir['content'];
           $user_id = $satir['user_id'];
           $link = "";
@@ -63,7 +70,7 @@ function getAllFeed($conn, $user_id)
             $link = str_replace("track/", "embed/track/", $link);
           }
 
-          $current_diary = array("content" => $content, "date" => $date, "link" => $link, "friend_name" => $friend_name, "user_id" => $user_id);
+          $current_diary = array("content" => $content, "date" => $date, "link" => $link, "friend_name" => $friend_name, "user_id" => $user_id, "pp" => $pp);
           array_push($arr, $current_diary);
         }
       }

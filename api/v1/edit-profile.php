@@ -2,9 +2,9 @@
 header('Content-Type: application/json');
 // register.php
 // Gerekli dosyaları ve veritabanı bağlantısını dahil edin
+require('includes/user/user_functions.php');
 require('includes/auth/auth_functions.php');
 require('includes/utf8/utf8_converter.php');
-require('includes/diaries/diaries_functions.php');
 require('../../includes/db_connect.php');
 
 
@@ -16,21 +16,21 @@ $headers = apache_request_headers();
 if( $_SERVER['REQUEST_METHOD'] === 'POST'){
     $data = json_decode(file_get_contents('php://input'), true); 
 if(isset($headers['Authorization'])){
-    if (isset($data['id'])) { //diary id var mı?
+    if (isset($data['username']) && isset($data['fullname']) && isset($data['bio'])) { //kullanıcı id var mı?
         $token = $headers['Authorization']; //kullanıcının giriş tokeni
-
-        $diary_id = $data['id']; //kullanıcının günlüğünün idsi
-    
+        $username = $data['username']; // kullanıcının  username'i
+        $fullname = $data['fullname']; // kullanıcının  fullname'i
+        $bio = $data['bio']; // kullanıcının  bio'su
         $result =  tokenLoginControl($conn,$token); //login kontrolü
     
         if($result != null){ //kullanıcı giriş yapmışsa
-            $delete_response = deleteDiary($conn,$diary_id); 
-    
-            if ($delete_response ) {
-                echo json_encode(array("status" => "success","data"=>"Başarıyla silindi!"));
+            $statsResponse = editProfile($conn,$username, $fullname, $bio, $result['id']);
+          
+            if ($statsResponse != null) {
+                echo json_encode(array("status" => "success","data"=>"Profile edited!"));
             }
             else{
-                echo json_encode(array("status" => "error","data"=>"Silme işlemi sırasında bir hata oluştu!"));
+                echo json_encode(array("status" => "error","data"=>"Profile edit error!"));
             }
         }
         else{ 

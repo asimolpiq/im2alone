@@ -26,23 +26,15 @@ function userAllreadyRegister($conn, $email,$username){
     return false;
   }
   }
-  function getUser($conn,$email){
-    $response = mysqli_query($conn,"SELECT * FROM users WHERE email='$email'");
-    $count = mysqli_num_rows($response);
-    if($count>0){
-      echo $response->fetch_assoc();
-        return $response->fetch_assoc();
-    }
-    else{
-        return null;
-    }
-
-  }
 
   function tokenLoginControl($conn,$token){
     $response = $conn->query("SELECT * FROM users WHERE token = '$token'");
     if($response->num_rows===1){
-      return $response->fetch_assoc();
+      $user =  $response->fetch_assoc();
+      if($user['pp'] == ""){
+        $user['pp'] = null;
+      }
+        return $user;
     }
     else{
       return null;
@@ -65,7 +57,7 @@ function userAllreadyRegister($conn, $email,$username){
         $user = $result->fetch_assoc();
         $user['token'] = $token;
         if($user['pp'] == ""){
-          $user['pp'] = "empty";
+          $user['pp'] = null;
         }
         // Giriş tarihini ve IP adresini güncelleme
         $userid = $user['id'];

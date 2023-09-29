@@ -22,6 +22,6 @@ if (isset($headers['Authorization'])) {
 } else if (json_last_error() !== JSON_ERROR_NONE) {
     echo json_encode(array("status" => "error", "data" => "JSON veri hatası."));
 } else {
-    echo json_encode(array("status" => "error", 'data' => 'Geçersiz Yöntem.'));
+    echo json_encode(array("status" => "error", 'data' => 'Authorization error!'));
 }
 $conn->close();

@@ -19,7 +19,13 @@ if (isset($headers['Authorization'])) {
     if ($result != null) {
         $user_id = $result['id'];
         $diary_response = getNotifications($conn, $user_id);
-        echo json_encode(array("status" => "success", "data" => utf8ize($diary_response)));
+        if ($diary_response == null) {
+            echo json_encode(array("status" => "error", "data" => "You don't have a friend request."));;
+        }
+        else{
+            echo json_encode(array("status" => "success", "data" => utf8ize($diary_response)));
+        }
+      
     } else {
         echo json_encode(array("status" => "error", "error" => "Authorization error!"));
     }
