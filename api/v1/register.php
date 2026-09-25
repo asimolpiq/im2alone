@@ -4,6 +4,7 @@
 require('includes/auth/auth_functions.php');
 require('includes/utf8/utf8_converter.php');
 require('../../includes/db_connect.php');
+require_once('../../includes/age_functions.php');
 header('Content-Type: application/json');
 // İstek POST isteği mi kontrol edin
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -37,10 +38,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $password = md5($password);
 
 
-  $birthdayDate = DateTime::createFromFormat('d/m/Y', $data['birthday']);
-  $birthday = $birthdayDate !== false ? $birthdayDate->format('d/m/Y') : $data['birthday'];
+  //dogum tarihi zorunlu ve gecerli olmali, 13 yas alti kayit olamaz (App Store yas siniflandirmasi)
+  $birthday = normalizeBirthday($data['birthday']);
+  if ($birthday === null) {
+    echo json_encode(array("status" => "error", "data" => "Geçersiz doğum tarihi. (gg/aa/yyyy)"));
+    $conn->close();
+    exit();
+  }
+  if (isUnderMinAge($birthday)) {
+    echo json_encode(array("status" => "error", "data" => "im2alone'u kullanmak için en az " . IM2ALONE_MIN_AGE . " yaşında olmalısın."));
+    $conn->close();
+    exit();
+  }
 
-  
+
   $error = userAllreadyRegister($conn,$email,$username);
 
 

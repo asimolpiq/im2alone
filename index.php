@@ -1,5 +1,6 @@
 <?php require('includes/db_connect.php');
 require('includes/csrf.php');
+require_once('includes/age_functions.php');
 ob_start();
 session_start();
 if(isset($_SESSION["im2alone_user"])){
@@ -73,6 +74,11 @@ function GetIP(){
         if($sonuc ->num_rows>0){
           while($satir = $sonuc -> fetch_assoc()){
             if($username==$satir['username'] && $password==$satir['password']){
+              //13 yas alti giris yapamaz (App Store yas siniflandirmasi)
+              if(isUnderMinAge($satir['birthday'])){
+                echo "<div class='alert alert-danger' role='alert'> You must be at least " . IM2ALONE_MIN_AGE . " years old to use im2alone. </div>";
+                continue;
+              }
               echo "<div class='alert alert-success' role='alert'> Login Success! </div>";
               if((int)$satir['status']==0){
                 //mail dogrulanmamis ama giris engellenmiyor, iceride hatirlatacagiz

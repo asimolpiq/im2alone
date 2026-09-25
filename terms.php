@@ -74,7 +74,14 @@
     <p>We may suspend or permanently disable any account that violates these Terms, without prior notice, in
       addition to removing the violating Content.</p>
 
-    <h2>5. Contact</h2>
+    <h2>5. Age requirement</h2>
+    <p>im2alone is a social app: it includes user-generated content, friend connections and messaging between
+      members. <strong>You must be at least 13 years old to create an account or use im2alone.</strong> We ask for
+      your date of birth at sign-up and do not allow registration, login, or access to any social feature for
+      anyone under 13. If we learn that an account belongs to a person under 13, we will disable it. If you believe
+      a child under 13 has an account, please contact us so we can remove it.</p>
+
+    <h2>6. Contact</h2>
     <p>Questions about these Terms, or to appeal a moderation decision, contact us at
       <a href="mailto:info@im2alone.com">info@im2alone.com</a>. See also our <a href="support.php">Support
         page</a>.</p>
@@ -93,6 +100,11 @@
       "Engelle" seçeneğiyle o kullanıcıyla tüm etkileşimi durdurabilirsiniz. Gelen tüm şikayetler
       <strong>24 saat içinde</strong> incelenir ve gerekli görüldüğünde içerik kaldırılır, kullanıcı hesabı askıya
       alınır.</p>
+    <h2>Yaş Sınırı</h2>
+    <p>im2alone sosyal bir uygulamadır (kullanıcı içeriği, arkadaşlık ve mesajlaşma içerir).
+      <strong>Hesap oluşturmak ve uygulamayı kullanmak için en az 13 yaşında olmalısınız.</strong> Kayıt sırasında
+      doğum tarihi istenir; 13 yaşından küçükler kayıt olamaz, giriş yapamaz ve hiçbir sosyal özelliğe erişemez.
+      13 yaş altı bir kullanıcıya ait olduğunu öğrendiğimiz hesaplar kapatılır.</p>
     <h2>İletişim</h2>
     <p>Sorularınız için: <a href="mailto:info@im2alone.com">info@im2alone.com</a></p>
   </div>

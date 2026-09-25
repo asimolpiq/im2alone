@@ -1,6 +1,7 @@
 <?php require('includes/db_connect.php');
 require('includes/class.upload.php');
 require_once('includes/csrf.php');
+require_once('includes/age_functions.php');
 ob_start();
 session_start();
 if (!isset($_SESSION["im2alone_user"])) {
@@ -246,7 +247,9 @@ if (!isset($_SESSION["im2alone_user"])) {
 
         $gender = $_POST['gender'];
 
-        $birthday = date('d/m/Y', strtotime($_POST["birthday"]));
+        //strtotime bozuk tarihte false doner, date() onu 01/01/1970 yapiyordu; null birakip asagida yakaliyoruz
+        $bday_ts = isset($_POST["birthday"]) ? strtotime($_POST["birthday"]) : false;
+        $birthday = $bday_ts ? normalizeBirthday(date('d/m/Y', $bday_ts)) : null;
 
         $recive_password = trim($_POST['password']);
         $recive_password = strip_tags($_POST['password']);
@@ -283,7 +286,8 @@ if (!isset($_SESSION["im2alone_user"])) {
         if ($bio == "") {
           $bio = $im2alone_user['bio'];
         }
-        if ($_POST["birthday"] == "") {
+        $birthday_changing = isset($_POST["birthday"]) && $_POST["birthday"] != "";
+        if (!$birthday_changing) {
           $birthday = $im2alone_user['birthday'];
         }
 
@@ -326,6 +330,11 @@ if (!isset($_SESSION["im2alone_user"])) {
           $errors = "<div class='alert alert-danger text-center' role='alert'> Passwords do not match dude :( </div>";
         } elseif (!preg_match('/^[0-9A-Za-z_]+$/', $username) || !preg_match('/^[\p{L}0-9_ ]+$/u', $realname)) {
           $errors = "<div class='alert alert-danger text-center' role='alert'> Username or Realname must contain alphabets and space dude :( </div>";
+        } elseif ($birthday_changing && $birthday === null) {
+          $errors = "<div class='alert alert-danger text-center' role='alert'> Invalid birthday </div>";
+        } elseif ($birthday_changing && isUnderMinAge($birthday)) {
+          //dogum tarihi 13 yas altina cekilemez (App Store yas siniflandirmasi)
+          $errors = "<div class='alert alert-danger text-center' role='alert'> You must be at least " . IM2ALONE_MIN_AGE . " years old to use im2alone </div>";
         } elseif (!$error) {
           $profile_update = $conn->prepare("UPDATE users SET username=?, realname=?, password=?, email=?, gender=?,birthday=?, bio=? WHERE id=?");
           $gender_int = (int) $gender;

@@ -1,4 +1,6 @@
-<?php 
+<?php
+require_once(__DIR__ . '/../../../../includes/age_functions.php'); //13 yas kontrolu (web ile ortak)
+
 function userAllreadyRegister($conn, $email,$username){
     $stmt = $conn->prepare("SELECT email FROM users WHERE email=? OR username = ?");
     if (!$stmt) {
@@ -54,6 +56,10 @@ function userAllreadyRegister($conn, $email,$username){
       if(isset($user['is_banned']) && $user['is_banned'] == 1){
         return null;
       }
+      //13 yas alti hicbir sosyal endpoint'e erisemez (token gecersiz sayilir)
+      if(isUnderMinAge($user['birthday'])){
+        return null;
+      }
       if($user['pp'] == ""){
         $user['pp'] = null;
       }
@@ -84,6 +90,10 @@ function userAllreadyRegister($conn, $email,$username){
         $user = $result->fetch_assoc();
         if(isset($user['is_banned']) && $user['is_banned'] == 1){
           return array("banned" => true);
+        }
+        //13 yas alti giris yapamaz (App Store yas siniflandirmasi)
+        if(isUnderMinAge($user['birthday'])){
+          return array("underage" => true);
         }
         $token= bin2hex(random_bytes(16));
         // Giriş başarılı

@@ -1,4 +1,6 @@
 <?php
+require_once(__DIR__ . '/../../../../includes/age_functions.php'); //13 yas kontrolu (web ile ortak)
+
 function isBlocked($conn, $userID1, $userID2)
 {
     $userID1 = (int) $userID1;
@@ -229,6 +231,14 @@ function editProfile($conn, $username, $fullname, $email, $gender, $birthday, $b
         }
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             return array("success" => false, "message" => "invalid_email");
+        }
+        //dogum tarihi gecerli olmali, 13 yas altina cekilemez
+        $birthday = normalizeBirthday($birthday);
+        if ($birthday === null) {
+            return array("success" => false, "message" => "invalid_birthday");
+        }
+        if (isUnderMinAge($birthday)) {
+            return array("success" => false, "message" => "underage");
         }
 
         $username_stmt = $conn->prepare("SELECT id FROM users WHERE username=? AND id<>?");

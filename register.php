@@ -1,5 +1,6 @@
 <?php
 require('includes/db_connect.php');
+require_once('includes/age_functions.php');
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
 use PHPMailer\PHPMailer\Exception;
@@ -81,11 +82,18 @@ function GetIP()
         $confirm_pass = strip_tags($_POST['confirm_pass']);
         $confirm_pass = htmlspecialchars($_POST['confirm_pass']);
 
-        $birthday = date('d/m/Y', strtotime($_POST["birthday"]));
+        //strtotime bozuk tarihte false doner, date() onu 01/01/1970 yapiyordu; bos birakip asagida yakaliyoruz
+        $bday_ts = isset($_POST["birthday"]) ? strtotime($_POST["birthday"]) : false;
+        $birthday = $bday_ts ? normalizeBirthday(date('d/m/Y', $bday_ts)) : null;
 
         $error = false;
 
-        if (strlen($username) < 6) {
+        if ($birthday === null) {
+          echo "<div class='alert alert-danger' role='alert'> Invalid birthday </div>";
+        } elseif (isUnderMinAge($birthday)) {
+          //13 yas alti kayit olamaz (App Store yas siniflandirmasi)
+          echo "<div class='alert alert-danger' role='alert'> You must be at least " . IM2ALONE_MIN_AGE . " years old to use im2alone </div>";
+        } elseif (strlen($username) < 6) {
           echo "<div class='alert alert-danger' role='alert'> username too short </div>";
         } elseif (strlen($username) > 30) {
           echo "<div class='alert alert-danger' role='alert'> username too long </div>";

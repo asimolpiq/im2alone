@@ -16,6 +16,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         if (is_array($user) && isset($user["banned"])) {
             echo json_encode(array("status" => "error", "error" => "Hesabınız kural ihlali nedeniyle askıya alınmıştır."));
+        } else if (is_array($user) && isset($user["underage"])) {
+            echo json_encode(array("status" => "error", "error" => "im2alone'u kullanmak için en az " . IM2ALONE_MIN_AGE . " yaşında olmalısın."));
         } else if ($user != null) {
             // Başarılı giriş durumunda kullanıcı bilgileri ile yanıt veriyoruz
             echo json_encode(array("status" => "success", "data" => utf8ize($user)));
