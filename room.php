@@ -1,8 +1,10 @@
 <?php require('includes/db_connect.php');
+require('includes/room_guard.php');
 ob_start();
 session_start();
 if(!isset($_SESSION["im2alone_user"])){
   header("Location:index.php");
+  exit();
 }
 else {
   $im2alone_user = $_SESSION["im2alone_user"];
@@ -13,8 +15,13 @@ else {
 }
 if (empty($_GET["name"])) {
     header("Location:index.php");
+    exit();
 } else {
     $name = $_GET["name"];
+    if(!isValidRoomTable($conn, $name)){
+      header("Location:rooms.php");
+      exit();
+    }
     try{
       mysqli_query($conn,"INSERT INTO chat_online(room_name,username) VALUES ('$name','$my_username')");
     }
@@ -44,7 +51,7 @@ $online_count = $online_count[0];
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title><?=$room_name?></title>
 <!-- Sabit Kütüphaneleri çektiğimiz yer -->
-<?php require('includes/librarys.php'); ?>
+<?php require('includes/librarys_app.php'); ?>
 <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
 <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
 <!--[if lt IE 9]>
@@ -89,6 +96,7 @@ $online_count = $online_count[0];
       try{
         $leave_query = mysqli_query($conn,"DELETE FROM chat_online WHERE username='$my_username'");
         header("Location:rooms.php");
+        exit();
       }
       catch(Exception $e){
         print("Leave failed : $e");
@@ -100,8 +108,12 @@ $online_count = $online_count[0];
           <div class="info-box">
             <div class="box box-warning direct-chat direct-chat-warning">
               <div class="box-header with-border">
-              <form  method="POST">
-                <h3 class="box-title text-white"><button class="btn btn-outline ti ti-arrow-left" type='submit' name="leave_room"> </button>  &nbsp; Online User: <?=$online_count?></h3>
+              <form method="POST" class="chat-header">
+                <button class="btn btn-outline btn-rounded chat-back ti ti-arrow-left" type="submit" name="leave_room" title="Leave room"></button>
+                <div class="chat-header-info">
+                  <h3 class="chat-room-name"><?=$room_name?></h3>
+                  <span class="chat-online"><span class="online-dot is-online"></span> <?=$online_count?> online</span>
+                </div>
               </form>
               </div>
               <div  class="box-body" id="scrl"> 
@@ -123,10 +135,13 @@ $online_count = $online_count[0];
                                 $count = mysqli_num_rows($get_pp);
                                 if($count!=0){
                                    $satir = mysqli_fetch_row($get_pp);
-                                   $pp = $satir[0]; 
+                                   $pp = $satir[0];
                                    if($pp==null){
                                     $pp = "dist/img/img2.jpg";
-                                   }  
+                                   }
+                                }
+                                else{
+                                    $pp = "dist/img/img2.jpg"; //silinmis kullanici, onceki mesajin pp'si kalmasin
                                 }
                                 echo " 
                                 <div class='direct-chat-msg'>
@@ -147,7 +162,7 @@ $online_count = $online_count[0];
                         
                       }
                      else{
-                         echo "<div class='text-center h1'><br>MessageBox is Empty<br><br></div>";
+                         echo "<div class='user-list-empty'><i class='ti ti-comments'></i><p>No messages yet.</p><span>Say hi — start the conversation!</span></div>";
                      }
                     }
                     catch(Exception $e){
@@ -175,10 +190,10 @@ $online_count = $online_count[0];
                  }
               ?>
                  <form method="POST"  accept-charset="UTF-8" enctype="multipart/form-data">
-                  <div class="input-group">
-                    <input name="message" placeholder="Type Message ..." class="form-control" type="text">
+                  <div class="input-group chat-input">
+                    <input name="message" placeholder="Type a message..." class="form-control" type="text" autocomplete="off">
                     <span class="input-group-btn">
-                    <button  type="submit"  name="send" class="btn btn-warning btn-flat">Send</button>
+                    <button  type="submit"  name="send" class="btn btn-primary btn-flat">Send</button>
                     </span> </div>
                 </form>
               </div>

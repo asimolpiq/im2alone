@@ -1,20 +1,29 @@
 <?php require('includes/db_connect.php');
+require('includes/feed_stats.php');
+require('includes/html_sanitizer.php');
+require('includes/csrf.php');
 ob_start();
 session_start();
 if (!isset($_SESSION["im2alone_user"])) {
     header("Location:index.php");
+    exit();
 } else {
     $im2alone_user = $_SESSION["im2alone_user"];
+    csrfToken();
 }
 
 $user_info;
 if (empty($_GET["username"])) {
     header("Location:index.php");
+    exit();
 } else {
     $search_text = $_GET["username"];
-    $search_text = $conn->real_escape_string($search_text);
-    $sorgu = "SELECT * FROM users WHERE username LIKE '%$search_text%'";
-    $sonuc = mysqli_query($conn, $sorgu);
+    //LIKE %..% yanlis kullanicinin profilini acabiliyordu, birebir eslesme sart
+    $sorgu_stmt = $conn->prepare("SELECT * FROM users WHERE username = ?");
+    $sorgu_stmt->bind_param("s", $search_text);
+    $sorgu_stmt->execute();
+    $sonuc = $sorgu_stmt->get_result();
+    $sorgu_stmt->close();
     $count = mysqli_num_rows($sonuc);
     if ($count != 0) {
         while ($satir = mysqli_fetch_array($sonuc)) {
@@ -24,15 +33,21 @@ if (empty($_GET["username"])) {
     } else {
         echo "User not found!";
         header("Refresh:2; url=index.php");
+        exit();
     }
 }
 
-$my_id =  $im2alone_user['id'];
-$friend_id = $user_info['id'];
-$allready_blocked =  mysqli_query($conn, "SELECT * FROM blockeduser WHERE (userid1='$my_id' AND userid2='$friend_id') OR (userid1='$friend_id' AND userid2='$my_id')");
+$my_id =  (int) $im2alone_user['id'];
+$friend_id = (int) $user_info['id'];
+$allready_blocked_stmt = $conn->prepare("SELECT id FROM blockeduser WHERE (userid1=? AND userid2=?) OR (userid1=? AND userid2=?)");
+$allready_blocked_stmt->bind_param("iiii", $my_id, $friend_id, $friend_id, $my_id);
+$allready_blocked_stmt->execute();
+$allready_blocked = $allready_blocked_stmt->get_result();
 $count_blocked = mysqli_num_rows($allready_blocked);
+$allready_blocked_stmt->close();
 if ($count_blocked != 0) {
     header("Location:index.php");
+    exit();
 }
 ?>
 <!DOCTYPE html>
@@ -41,9 +56,9 @@ if ($count_blocked != 0) {
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title><?= $_GET["username"] ?></title>
+    <title><?= htmlspecialchars($_GET["username"], ENT_QUOTES) ?></title>
     <?php
-    require("includes/librarys.php");
+    require("includes/librarys_app.php");
     
     ?>
 
@@ -65,6 +80,7 @@ if ($count_blocked != 0) {
             $birthday = substr($birthday,0,5);
             $now_date = date('d/m');
             if($now_date==$birthday){
+                $search_text = htmlspecialchars($search_text, ENT_QUOTES);
                 echo "<div class='alert alert-warning text-center' role='alert'>
                 Happy Birthday $search_text! ve hope be good year for u <i><svg xmlns='http://www.w3.org/2000/svg'  width='16' height='16' fill='currentColor' class='bi bi-balloon-heart' viewBox='0 0 16 16'>
                     <path fill-rule='evenodd' d='m8 2.42-.717-.737c-1.13-1.161-3.243-.777-4.01.72-.35.685-.451 1.707.236 3.062C4.16 6.753 5.52 8.32 8 10.042c2.479-1.723 3.839-3.29 4.491-4.577.687-1.355.587-2.377.236-3.061-.767-1.498-2.88-1.882-4.01-.721L8 2.42Zm-.49 8.5c-10.78-7.44-3-13.155.359-10.063.045.041.089.084.132.129.043-.045.087-.088.132-.129 3.36-3.092 11.137 2.624.357 10.063l.235.468a.25.25 0 1 1-.448.224l-.008-.017c.008.11.02.202.037.29.054.27.161.488.419 1.003.288.578.235 1.15.076 1.629-.157.469-.422.867-.588 1.115l-.004.007a.25.25 0 1 1-.416-.278c.168-.252.4-.6.533-1.003.133-.396.163-.824-.049-1.246l-.013-.028c-.24-.48-.38-.758-.448-1.102a3.177 3.177 0 0 1-.052-.45l-.04.08a.25.25 0 1 1-.447-.224l.235-.468ZM6.013 2.06c-.649-.18-1.483.083-1.85.798-.131.258-.245.689-.08 1.335.063.244.414.198.487-.043.21-.697.627-1.447 1.359-1.692.217-.073.304-.337.084-.398Z'/>
@@ -127,43 +143,41 @@ if ($count_blocked != 0) {
                         <div class="widget-user-image"> <img class="img-circle" src="<?= $pp ?>" alt="User Avatar"> </div>
                         <div class="box-footer">
                             <div class="text-center">
-                                <p> <?= $user_info['bio'] ?></p>
+                                <p> <?= htmlspecialchars($user_info['bio'], ENT_QUOTES) ?></p>
                                 <?php
                                 $my_id =  $im2alone_user['id'];
                                 $friend_id = $user_info['id'];
+                                $csrf = htmlspecialchars(csrfToken(), ENT_QUOTES);
                                 if ($my_id != $friend_id) {
                                     if ($info_text == "Accept") {
-                                        echo  "<a href='", "accept_friend.php?my_id=", $my_id, "&friend_id=", $friend_id, "' class='btn btn-facebook btn-rounded margin-bottom' name='add_friend'>$info_text</a>";
-                                        echo  "<a href='", "refuse_friend.php?my_id=", $my_id, "&friend_id=", $friend_id, "' class='btn btn-facebook btn-rounded margin-bottom' name='add_friend'>Refuse</a>";
+                                        echo  "<a href='", "accept_friend.php?my_id=", $my_id, "&friend_id=", $friend_id, "&csrf=", $csrf, "' class='btn btn-facebook btn-rounded margin-bottom' name='add_friend'>$info_text</a>";
+                                        echo  "<a href='", "refuse_friend.php?my_id=", $my_id, "&friend_id=", $friend_id, "&csrf=", $csrf, "' class='btn btn-facebook btn-rounded margin-bottom' name='add_friend'>Refuse</a>";
                                     } elseif ($info_text == "Add Friend") {
-                                        echo  "<a href='", "add_friend.php?my_id=", $my_id, "&friend_id=", $friend_id, "' class='btn btn-facebook btn-rounded margin-bottom' name='add_friend'>$info_text</a>";
+                                        echo  "<a href='", "add_friend.php?my_id=", $my_id, "&friend_id=", $friend_id, "&csrf=", $csrf, "' class='btn btn-facebook btn-rounded margin-bottom' name='add_friend'>$info_text</a>";
                                     } elseif ($info_text == "Awaiting Response") {
                                         echo  "<a href='#' class='btn btn-facebook btn-rounded margin-bottom' disabled>$info_text</a>";
+                                        echo  "<a href='", "cancel_request.php?friend_id=", $friend_id, "&csrf=", $csrf, "' class='btn btn-danger btn-outline btn-rounded margin-bottom'>Cancel Request</a>";
                                     } elseif ($info_text == "You Are Friends") {
-                                        echo  "<a href='", "delete_friend.php?my_id=", $my_id, "&friend_id=", $friend_id, "' class='btn btn-facebook btn-rounded margin-bottom' name='add_friend'>Delete Friend</a>";
-                                        echo  "<a href='", "block_friend.php?my_id=", $my_id, "&friend_id=", $friend_id, "' class='btn btn-facebook btn-rounded margin-bottom' name='add_friend'>Block Friend</a>";
+                                        echo  "<a href='", "delete_friend.php?my_id=", $my_id, "&friend_id=", $friend_id, "&csrf=", $csrf, "' class='btn btn-facebook btn-rounded margin-bottom' name='add_friend'>Delete Friend</a>";
+                                        echo  "<a href='", "block_friend.php?my_id=", $my_id, "&friend_id=", $friend_id, "&csrf=", $csrf, "' class='btn btn-facebook btn-rounded margin-bottom' name='add_friend'>Block Friend</a>";
                                     }
                                 }
                                 $post_count;
-                                $follower_count;
-                                $following_count;
+                                $friends_count;
                                 $reciever_id=$user_info['id'];
                                 $posts_query = mysqli_query($conn,"SELECT COUNT(id) AS number FROM feeds WHERE user_id='$reciever_id'");
                                 while ($satir1 = mysqli_fetch_array($posts_query)) {
                                   $post_count= $satir1['number'];
                                 }
-                                $follower_query = mysqli_query($conn,"SELECT COUNT(id) AS number FROM friends WHERE userid2='$reciever_id'");
-                                while ($satir2 = mysqli_fetch_array($follower_query)) {
-                                  $follower_count= $satir2['number'];
-                                }
-                                $following_query = mysqli_query($conn,"SELECT COUNT(id) AS number FROM friends WHERE userid1='$reciever_id'");
-                                while ($satir3 = mysqli_fetch_array($following_query)) {
-                                  $following_count= $satir3['number'];
+                                //arkadaslik tek satir tutuluyor (yon yok), follower/following ayrimi gercegi yansitmiyordu
+                                $friends_query = mysqli_query($conn,"SELECT COUNT(id) AS number FROM friends WHERE userid1='$reciever_id' OR userid2='$reciever_id'");
+                                while ($satir2 = mysqli_fetch_array($friends_query)) {
+                                  $friends_count= $satir2['number'];
                                 }
                                 ?>
                             </div>
                             <div class="row">
-                                <div class="col-sm-4 border-right">
+                                <div class="col-sm-6 border-right">
                                     <div class="description-block">
                                         <h5 class="description-header"><?= $post_count ?></h5>
                                         <span class="description-text">POST</span>
@@ -171,18 +185,10 @@ if ($count_blocked != 0) {
                                     <!-- /.description-block -->
                                 </div>
                                 <!-- /.col -->
-                                <div class="col-sm-4 border-right">
+                                <div class="col-sm-6">
                                     <div class="description-block">
-                                        <h5 class="description-header"><?= $follower_count; ?></h5>
-                                        <span class="description-text">FOLLOWERS</span>
-                                    </div>
-                                    <!-- /.description-block -->
-                                </div>
-                                <!-- /.col -->
-                                <div class="col-sm-4">
-                                    <div class="description-block">
-                                        <h5 class="description-header"><?= $following_count ?></h5>
-                                        <span class="description-text">FOLLOWİNG</span>
+                                        <h5 class="description-header"><?= $friends_count; ?></h5>
+                                        <span class="description-text">FRIENDS</span>
                                     </div>
                                     <!-- /.description-block -->
                                 </div>
@@ -197,8 +203,11 @@ if ($count_blocked != 0) {
 
             <?php
             $search_text1 = $_GET["username"];
-            $sorgu1 = sprintf("SELECT * FROM users WHERE username LIKE '%s'", $conn->real_escape_string($search_text1));
-            $sonuc1 = mysqli_query($conn, $sorgu1);
+            $sorgu1_stmt = $conn->prepare("SELECT * FROM users WHERE username = ?");
+            $sorgu1_stmt->bind_param("s", $search_text1);
+            $sorgu1_stmt->execute();
+            $sonuc1 = $sorgu1_stmt->get_result();
+            $sorgu1_stmt->close();
             $count = mysqli_num_rows($sonuc1);
             if ($count != 0) {
                 while ($satir = mysqli_fetch_array($sonuc1)) {
@@ -225,16 +234,20 @@ if ($count_blocked != 0) {
                     echo    "<div class='box-header with-border'>";
                     echo      "<div class='user-block'> <img class='img-circle' src='$pp' alt='User Image'> <span class='username'><a href='user_detail.php?username=", $user_info_username, "'>", $user_info_username, "</a></span> <span class='description'>", $date, "</span> </div>";
                     echo    "</div>";
-                    echo    "<div class='box-body pad'><br>", $post_rows['content'];
+                    echo    "<div class='box-body pad'>", sanitizeDiaryHtml($post_rows['content']);
                     if ($post_rows['link'] != "") {
                         $link = $post_rows['link'];
                         $link = str_replace("track/", "embed/track/", $link);
+                        $link = htmlspecialchars($link, ENT_QUOTES);
 
                         echo "<iframe style='border-radius:12px' src='",
                         $link,
                         "?utm_source=generator' height='80' frameBorder='0' allowfullscreen='' allow='autoplay; clipboard-write; encrypted-media; fullscreen; '></iframe>";
                     }
                     echo     "</div>";
+                    recordFeedView($conn, $post_rows['id'], $my_id, $user_info_id);
+                    $stats = getFeedStats($conn, $post_rows['id'], $my_id);
+                    echo feedActionsHtml($stats, $post_rows['id'], $user_info_id != $my_id);
                     echo    "</div>";
                 }
                 echo    "</div>";

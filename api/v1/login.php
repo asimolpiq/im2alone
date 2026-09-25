@@ -14,7 +14,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         // Kullanıcıyı doğruluyoruz
         $user = loginControl($conn, $username, $password);
 
-        if ($user != null) {
+        if (is_array($user) && isset($user["banned"])) {
+            echo json_encode(array("status" => "error", "error" => "Hesabınız kural ihlali nedeniyle askıya alınmıştır."));
+        } else if ($user != null) {
             // Başarılı giriş durumunda kullanıcı bilgileri ile yanıt veriyoruz
             echo json_encode(array("status" => "success", "data" => utf8ize($user)));
         } else {

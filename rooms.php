@@ -3,6 +3,7 @@ ob_start();
 session_start();
 if(!isset($_SESSION["im2alone_user"])){
   header("Location:index.php");
+  exit();
 }
 else {
   $im2alone_user = $_SESSION["im2alone_user"];
@@ -16,7 +17,7 @@ else {
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title>Rooms</title>
 <!-- Sabit Kütüphaneleri çektiğimiz yer -->
-<?php require('includes/librarys.php'); ?>
+<?php require('includes/librarys_app.php'); ?>
 <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
 <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
 <!--[if lt IE 9]>
@@ -77,9 +78,11 @@ else {
                     $online_count = mysqli_fetch_row($online_count_query);
                     $online_count = $online_count[0];
                     $room_new_name = str_replace("_room", "", $table_name);
+                    $online_class = $online_count > 0 ? "online-dot is-online" : "online-dot";
                     echo "<li class='item'>
-                    <div class='product-img'> <img src='dist/img/img1.gif' alt='Product Image'> </div>
-                    <div class='product-info'> <a href='room.php?name=$table_name' class='product-title h4'>$room_new_name</a><span class='product-description'> Online Users : $online_count  </span> </div>
+                    <div class='product-img'> <img src='dist/img/img1.gif' alt='Room Image'> </div>
+                    <div class='product-info'> <a href='room.php?name=$table_name' class='product-title h4'>$room_new_name</a><span class='product-description'><span class='$online_class'></span> $online_count online</span> </div>
+                    <a href='room.php?name=$table_name' class='btn btn-primary btn-rounded btn-sm room-join'>Join</a>
                   </li>";
                 }
                 } 

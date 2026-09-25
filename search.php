@@ -3,6 +3,7 @@ ob_start();
 session_start();
 if (!isset($_SESSION["im2alone_user"])) {
   header("Location:index.php");
+  exit();
 } else {
   $im2alone_user = $_SESSION["im2alone_user"];
 }
@@ -16,7 +17,7 @@ if (!isset($_SESSION["im2alone_user"])) {
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>Search</title>
   <?php
-  require("includes/librarys.php");
+  require("includes/librarys_app.php");
   ?>
 
   <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
@@ -51,6 +52,7 @@ if (!isset($_SESSION["im2alone_user"])) {
       $arr = array();
       if (empty($_POST["search_text"])) {
         header("Location:index.php");
+        exit();
       } else {
         $search_text = $_POST["search_text"];
         $search_text = $conn->real_escape_string($search_text);
@@ -78,22 +80,18 @@ if (!isset($_SESSION["im2alone_user"])) {
             if ($user_info['pp'] == '') {
               $pp2 = 'dist/img/img5.jpg';
             }
-            $bio = $user_info['bio'];
+            $bio = htmlspecialchars($user_info['bio'], ENT_QUOTES);
             $post_count;
-            $follower_count;
-            $following_count;
+            $friends_count;
             $reciever_id=$user_info['id'];
             $posts_query = mysqli_query($conn,"SELECT COUNT(id) AS number FROM feeds WHERE user_id='$reciever_id'");
             while ($satir1 = mysqli_fetch_array($posts_query)) {
               $post_count= $satir1['number'];
             }
-            $follower_query = mysqli_query($conn,"SELECT COUNT(id) AS number FROM friends WHERE userid2='$reciever_id'");
-            while ($satir2 = mysqli_fetch_array($follower_query)) {
-              $follower_count= $satir2['number'];
-            }
-            $following_query = mysqli_query($conn,"SELECT COUNT(id) AS number FROM friends WHERE userid1='$reciever_id'");
-            while ($satir3 = mysqli_fetch_array($following_query)) {
-              $following_count= $satir3['number'];
+            //arkadaslik tek satir tutuluyor (yon yok), follower/following ayrimi gercegi yansitmiyordu
+            $friends_query = mysqli_query($conn,"SELECT COUNT(id) AS number FROM friends WHERE userid1='$reciever_id' OR userid2='$reciever_id'");
+            while ($satir2 = mysqli_fetch_array($friends_query)) {
+              $friends_count= $satir2['number'];
             }
            
             echo "
@@ -114,7 +112,7 @@ if (!isset($_SESSION["im2alone_user"])) {
                  
                 </div>
                 <div class='row'>
-                  <div class='col-sm-4 border-right'>
+                  <div class='col-sm-6 border-right'>
                     <div class='description-block'>
                       <h5 class='description-header'>$post_count</h5>
                       <span class='description-text'>POST</span>
@@ -122,18 +120,10 @@ if (!isset($_SESSION["im2alone_user"])) {
                     <!-- /.description-block -->
                   </div>
                   <!-- /.col -->
-                  <div class='col-sm-4 border-right'>
+                  <div class='col-sm-6'>
                     <div class='description-block'>
-                      <h5 class='description-header'>$follower_count</h5>
-                      <span class='description-text'>FOLLOWERS</span>
-                    </div>
-                    <!-- /.description-block -->
-                  </div>
-                  <!-- /.col -->
-                  <div class='col-sm-4'>
-                    <div class='description-block'>
-                      <h5 class='description-header'>$following_count</h5>
-                      <span class='description-text'>FOLLOWİNG</span>
+                      <h5 class='description-header'>$friends_count</h5>
+                      <span class='description-text'>FRIENDS</span>
                     </div>
                     <!-- /.description-block -->
                   </div>

@@ -3,13 +3,24 @@ require('includes/db_connect.php');
 if(isset($_GET['username'])&& isset($_GET['token'])){
   $username = $_GET['username'];
   $token = $_GET['token'];
-  $usr_query = mysqli_query($conn,"SELECT users.username,tokens.token FROM users,tokens WHERE users.username = tokens.username AND (users.username='$username' AND tokens.token = '$token')");
-  if(mysqli_num_rows($usr_query)==0){
+  $usr_stmt = $conn->prepare("SELECT users.username,tokens.token FROM users,tokens WHERE users.username = tokens.username AND tokens.type='recovery' AND (users.username=? AND tokens.token = ?)");
+  if(!$usr_stmt){
+    header('Location:index.php');
+    exit();
+  }
+  $usr_stmt->bind_param("ss", $username, $token);
+  $usr_stmt->execute();
+  $usr_query = $usr_stmt->get_result();
+  $usr_count = $usr_query->num_rows;
+  $usr_stmt->close();
+  if($usr_count==0){
       header('Location:index.php');
+      exit();
   }
 }
 else{
   header('Location:index.php');
+  exit();
 }
 
 ?>
@@ -61,8 +72,10 @@ else{
             $error = true;
             echo "<div class='alert alert-danger' role='alert'> Passwords do not match </div>";
           } else {
-            $query = "SELECT * FROM users WHERE username='$username'";
-            $result = mysqli_query($conn, $query);
+            $user_stmt = $conn->prepare("SELECT * FROM users WHERE username=?");
+            $user_stmt->bind_param("s", $username);
+            $user_stmt->execute();
+            $result = $user_stmt->get_result();
             while($satir = mysqli_fetch_array($result)){
               $usr_pass = $satir['password'];
               $usr_pass = md5($usr_pass);
@@ -74,8 +87,16 @@ else{
                
                     if (!$error) {//genel kontrollerden geçtiyse kaydet
                       try{
-                        mysqli_query($conn,"UPDATE users SET password='$password' WHERE username='$username'");
-                        mysqli_query($conn,"DELETE FROM tokens WHERE token='$token'");
+                        $upd_stmt = $conn->prepare("UPDATE users SET password=? WHERE username=?");
+                        $upd_stmt->bind_param("ss", $password, $username);
+                        $upd_stmt->execute();
+                        $upd_stmt->close();
+
+                        $del_stmt = $conn->prepare("DELETE FROM tokens WHERE token=?");
+                        $del_stmt->bind_param("s", $token);
+                        $del_stmt->execute();
+                        $del_stmt->close();
+
                         echo "<div class='alert alert-success' role='alert'> Password reset success! </div>";
                         header("Refresh:3;url=index.php");
                       }

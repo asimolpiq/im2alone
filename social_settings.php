@@ -1,12 +1,15 @@
 <?php require('includes/db_connect.php');
+require('includes/csrf.php');
 ob_start();
 session_start();
 if(!isset($_SESSION["im2alone_user"])){
   header("Location:index.php");
+  exit();
 }
 else {
   $im2alone_user = $_SESSION["im2alone_user"];
   $my_id = $im2alone_user['id'];
+  $csrf = htmlspecialchars(csrfToken(), ENT_QUOTES);
 }
 ?>
 <!DOCTYPE html>
@@ -16,7 +19,7 @@ else {
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title>Social Setting</title>
 <!-- Sabit Kütüphaneleri çektiğimiz yer -->
-<?php require('includes/librarys.php'); ?>
+<?php require('includes/librarys_app.php'); ?>
 <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
 <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
 <!--[if lt IE 9]>
@@ -55,25 +58,31 @@ else {
     <!-- Main content -->
     <div class="content">
     <div class="info-box">
-    <div class="row">
-        
-        <!-- tablo başlangıç -->
-       <div class="table-responsive col-lg-4">
-            <h4 class="text-center">Friends</h4>
-            <br>
-            <table class="table">
-              <thead class="bg-success">
-                <tr>
-                <th scope="col">#</th>
-                <th scope="col">Username</th>
-                <th scope="col"></th>
-                </tr>
-                </thead>
-                <tbody>
+      <?php
+        // sekme sayaçları için sorgular en üstte çalışıyor, sonuçlar aşağıda geziliyor
+        $sonuc=mysqli_query($conn,"SELECT * FROM friends WHERE userid1='$my_id' OR userid2='$my_id'");
+        $friends_count = mysqli_num_rows($sonuc);
+        $sonuc2=mysqli_query($conn,"SELECT * FROM blockeduser WHERE userid1='$my_id'");
+        $blocked_count = mysqli_num_rows($sonuc2);
+        $sonuc4=mysqli_query($conn,"SELECT * FROM friend_request WHERE receiver='$my_id'");
+        $requests_count = mysqli_num_rows($sonuc4);
+      ?>
+      <!-- Tab bar: Friends / Blocked Users / Awaiting Friend Request -->
+      <ul class="nav nav-tabs social-tabs" role="tablist">
+        <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#tab-friends" role="tab"><i class="ti ti-user"></i> Friends <span class="tab-count tab-count-success"><?=$friends_count?></span></a></li>
+        <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tab-blocked" role="tab"><i class="ti ti-lock"></i> Blocked <span class="tab-count tab-count-danger"><?=$blocked_count?></span></a></li>
+        <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tab-requests" role="tab"><i class="ti ti-time"></i> Requests <span class="tab-count tab-count-warning"><?=$requests_count?></span></a></li>
+      </ul>
+      <div class="tab-content">
+        <!-- arkadaş listesi -->
+        <div class="tab-pane active" id="tab-friends" role="tabpanel">
+          <div class="user-list">
                   <?php
-                    $sonuc=mysqli_query($conn,"SELECT * FROM friends WHERE userid1='$my_id' OR userid2='$my_id'");
+                    if($friends_count==0){
+                      echo "<div class='user-list-empty'><i class='ti ti-face-smile'></i><p>You have no friends yet.</p><span>Search for a username and send a friend request!</span></div>";
+                    }
                     while($satir=mysqli_fetch_array($sonuc))
-                    {   
+                    {
                        $userid1 = $satir['userid1'];
                        $userid2 = $satir['userid2'];
                        if ($userid1 == $my_id) { //whic my friend id?
@@ -88,33 +97,30 @@ else {
                         if ($satir1['pp'] == "") {
                           $pp = "dist/img/img5.jpg";
                         }
-                       echo '<tr>';
-                       echo '<td>',"<img class='img-circle img-responsive' src='$pp' width='50px' height='50px' alt='User Image' >",'</td>';
-                       echo '<td>',"<a href='user_detail.php?username=",$satir1['username'],"'>",$satir1['username'],"</a>",'</td>';
-                       echo "<td><a href='", "delete_friend.php?my_id=", $my_id, "&friend_id=", $friendid, "' class='btn btn-rounded btn-danger pull-right'>Remove Friend</a></td>";
+                       echo "<div class='user-row'>";
+                       echo   "<img class='img-circle' src='$pp' alt='User Image'>";
+                       echo   "<div class='user-row-info'>";
+                       echo     "<a class='user-row-name' href='user_detail.php?username=",$satir1['username'],"'>",$satir1['username'],"</a>";
+                       echo     "<span class='user-row-sub'>",$satir1['realname'],"</span>";
+                       echo   "</div>";
+                       echo   "<div class='user-row-actions'>";
+                       echo     "<a href='", "delete_friend.php?my_id=", $my_id, "&friend_id=", $friendid, "&csrf=", $csrf, "' class='btn btn-rounded btn-outline btn-sm'>Remove Friend</a>";
+                       echo   "</div>";
+                       echo "</div>";
                     }
                     }
                   ?>
-
-              </tbody>
-            </table>
-            </div>
-            <div class="table-responsive col-lg-4">
-            <h4 class="text-center">Blocked Users</h4>
-            <br>
-            <table class="table">
-              <thead class="bg-danger">
-                <tr>
-                <th scope="col">#</th>
-                <th scope="col">Username</th>
-                <th scope="col"></th>
-                </tr>
-                </thead>
-                <tbody>
+          </div>
+        </div>
+        <!-- engellenen kullanıcılar -->
+        <div class="tab-pane" id="tab-blocked" role="tabpanel">
+          <div class="user-list">
                   <?php
-                    $sonuc2=mysqli_query($conn,"SELECT * FROM blockeduser WHERE userid1='$my_id'");
+                    if($blocked_count==0){
+                      echo "<div class='user-list-empty'><i class='ti ti-lock'></i><p>You haven't blocked anyone.</p><span>Blocked users can't see your diaries or find you in search.</span></div>";
+                    }
                     while($satir2=mysqli_fetch_array($sonuc2))
-                    {   
+                    {
                        $friendid = $satir2['userid2'];
                        $get_username = mysqli_query($conn, "SELECT * FROM users WHERE id ='$friendid'"); //whats my friend username?
                        while ($satir3 = mysqli_fetch_array($get_username)) {
@@ -122,34 +128,30 @@ else {
                         if ($satir3['pp'] == "") {
                           $pp = "dist/img/img5.jpg";
                         }
-                       echo '<tr>';
-                       echo '<td>',"<img class='img-circle img-responsive' src='$pp' width='50px' height='50px' alt='User Image' >",'</td>';
-                       echo '<td>',"<a href='user_detail.php?username=",$satir3['username'],"'>",$satir3['username'],"</a>",'</td>';
-                       echo "<td><a href='", "delete_block.php?my_id=", $my_id, "&friend_id=", $friendid, "' class='btn btn-rounded btn-danger pull-right'>Remove Block</a></td>";
+                       echo "<div class='user-row'>";
+                       echo   "<img class='img-circle' src='$pp' alt='User Image'>";
+                       echo   "<div class='user-row-info'>";
+                       echo     "<span class='user-row-name'>",$satir3['username'],"</span>";
+                       echo     "<span class='user-row-sub'>",$satir3['realname'],"</span>";
+                       echo   "</div>";
+                       echo   "<div class='user-row-actions'>";
+                       echo     "<a href='", "delete_block.php?my_id=", $my_id, "&friend_id=", $friendid, "&csrf=", $csrf, "' class='btn btn-rounded btn-outline btn-sm'>Remove Block</a>";
+                       echo   "</div>";
+                       echo "</div>";
                     }
                     }
                   ?>
-
-              </tbody>
-            </table>
-            </div>
-            <div class="table-responsive col-lg-4">
-            <h4 class="text-center">Awaiting Friend Request</h4>
-            <br>
-            <table class="table">
-              <thead class="bg-warning">
-                <tr>
-                <th scope="col">#</th>
-                <th scope="col">Username</th>
-                <th scope="col"></th>
-                <th scope="col"></th>
-                </tr>
-                </thead>
-                <tbody>
+          </div>
+        </div>
+        <!-- bekleyen arkadaşlık istekleri -->
+        <div class="tab-pane" id="tab-requests" role="tabpanel">
+          <div class="user-list">
                   <?php
-                    $sonuc4=mysqli_query($conn,"SELECT * FROM friend_request WHERE receiver='$my_id'");
+                    if($requests_count==0){
+                      echo "<div class='user-list-empty'><i class='ti ti-time'></i><p>No pending friend requests.</p><span>When someone sends you a request, it will show up here.</span></div>";
+                    }
                     while($satir4=mysqli_fetch_array($sonuc4))
-                    {   
+                    {
                        $friendid = $satir4['sender'];
                        $get_username = mysqli_query($conn, "SELECT * FROM users WHERE id ='$friendid'"); //whats my friend username?
                        while ($satir5 = mysqli_fetch_array($get_username)) {
@@ -157,22 +159,26 @@ else {
                         if ($satir5['pp'] == "") {
                           $pp = "dist/img/img5.jpg";
                         }
-                       echo '<tr>';
-                       echo '<td>',"<img class='img-circle img-responsive' src='$pp' width='50px' height='50px' alt='User Image' >",'</td>';
-                       echo '<td>',"<a href='user_detail.php?username=",$satir5['username'],"'>",$satir5['username'],"</a>",'</td>';
-                       echo "<td><a href='", "accept_friend.php?my_id=", $my_id, "&friend_id=", $friendid, "' class='btn btn-rounded btn-success btn-sm  pull-right'>Accept</a> </td>";
-                       echo "<td><a href='", "refuse_friend.php?my_id=", $my_id, "&friend_id=", $friendid, "' class='btn btn-rounded btn-danger btn-sm pull-right'>Refuse</a></td>";
+                       echo "<div class='user-row'>";
+                       echo   "<img class='img-circle' src='$pp' alt='User Image'>";
+                       echo   "<div class='user-row-info'>";
+                       echo     "<a class='user-row-name' href='user_detail.php?username=",$satir5['username'],"'>",$satir5['username'],"</a>";
+                       echo     "<span class='user-row-sub'>",$satir5['realname'],"</span>";
+                       echo   "</div>";
+                       echo   "<div class='user-row-actions'>";
+                       echo     "<a href='", "accept_friend.php?my_id=", $my_id, "&friend_id=", $friendid, "&csrf=", $csrf, "' class='btn btn-rounded btn-success btn-sm'>Accept</a>";
+                       echo     "<a href='", "refuse_friend.php?my_id=", $my_id, "&friend_id=", $friendid, "&csrf=", $csrf, "' class='btn btn-rounded btn-outline btn-sm'>Refuse</a>";
+                       echo   "</div>";
+                       echo "</div>";
                     }
                     }
                   ?>
-
-              </tbody>
-            </table>
-            </div>
+          </div>
         </div>
-        </div>
+      </div>
     </div>
-    <!-- /.content --> 
+    </div>
+    <!-- /.content -->
   </div>
   <!-- /.content-wrapper -->
   <?php require('includes/footer.php'); ?>

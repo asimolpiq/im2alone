@@ -13,3 +13,22 @@
 <link rel="stylesheet" href="dist/css/font-awesome/css/font-awesome.min.css">
 <link rel="stylesheet" href="dist/css/et-line-font/et-line-font.css">
 <link rel="stylesheet" href="dist/css/themify-icons/themify-icons.css">
+<style>
+/* login/register/forgot sayfalari mobilde: kutu absolute sag kenara
+   yapisiyordu, tam genislik + ic bosluk ver (masaustu gorunumu degismez) */
+@media (max-width: 767px) {
+  .login-page .login-box,
+  .register-page .login-box {
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    min-height: 100vh;
+  }
+  .login-page .login-box-body,
+  .register-page .login-box-body {
+    padding: 32px 24px !important;
+    min-height: 100vh;
+  }
+}
+</style>

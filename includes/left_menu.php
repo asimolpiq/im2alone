@@ -5,11 +5,13 @@ $status = "";
 
 if(!isset($_SESSION["im2alone_user"])){
     header("Location:index.php");
+    exit();
 }
 else {
   $im2alone_user = $_SESSION["im2alone_user"];
   if($im2alone_user['status']==0){
     header("Location:logout.php");
+    exit();
   }
   if($im2alone_user['permission']==0){$status = "hidden";}
 }
@@ -26,6 +28,7 @@ else {
 
         <li class="active treeview" <?=$status?>> <a href="#"> <i class="fa fa-dashboard"></i> <span>Admin Settings</span> <span class="pull-right-container"> <i class="fa fa-angle-left pull-right"></i> </span> </a>
           <ul class="treeview-menu">
+            <li><a href="reports.php">Reports</a></li>
             <li><a href="admin-create.php">Admin Create</a></li>
             <li><a href="create_room.php">Room Create</a></li>
             <li><a href="social_settings.php">Social Setting</a></li>

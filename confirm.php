@@ -3,14 +3,32 @@ require('includes/db_connect.php');
 if(isset($_GET['username'])&& isset($_GET['token'])){
     $username = $_GET['username'];
     $token = $_GET['token'];
-    $usr_query = mysqli_query($conn,"SELECT users.username,tokens.token FROM users,tokens WHERE users.username = tokens.username AND (users.username='$username' AND tokens.token = '$token')");
-    if(mysqli_num_rows($usr_query)==0){
+    $stmt = $conn->prepare("SELECT users.username,tokens.token FROM users,tokens WHERE users.username = tokens.username AND tokens.type='confirm' AND (users.username=? AND tokens.token = ?)");
+    if(!$stmt){
         header('Location:index.php');
+        exit();
+    }
+    $stmt->bind_param("ss", $username, $token);
+    $stmt->execute();
+    $usr_query = $stmt->get_result();
+    $usr_count = $usr_query->num_rows;
+    $stmt->close();
+    if($usr_count==0){
+        header('Location:index.php');
+        exit();
     }
     else{
         try{
-            mysqli_query($conn,"UPDATE users SET status=1 WHERE username='$username'");
-            mysqli_query($conn,"DELETE FROM tokens WHERE token='$token'");
+            $stmt = $conn->prepare("UPDATE users SET status=1 WHERE username=?");
+            $stmt->bind_param("s", $username);
+            $stmt->execute();
+            $stmt->close();
+
+            $stmt = $conn->prepare("DELETE FROM tokens WHERE token=?");
+            $stmt->bind_param("s", $token);
+            $stmt->execute();
+            $stmt->close();
+
             echo "İşlem tamam hocam";
             header('refresh:3; url=index.php');
         }
@@ -22,6 +40,7 @@ if(isset($_GET['username'])&& isset($_GET['token'])){
 }
 else{
     header('Location:index.php');
+    exit();
 }
 
 ?>

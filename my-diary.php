@@ -1,11 +1,16 @@
 <?php require('includes/db_connect.php');
+require('includes/html_sanitizer.php');
+require('includes/csrf.php');
+require('includes/feed_stats.php');
 ob_start();
 session_start();
 if(!isset($_SESSION["im2alone_user"])){
   header("Location:index.php");
+  exit();
 }
 else {
   $im2alone_user = $_SESSION["im2alone_user"];
+  csrfToken();
 }
 ?>
 <!DOCTYPE html>
@@ -14,7 +19,7 @@ else {
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title>My Diary</title>
-<?php require('includes/librarys.php'); ?>
+<?php require('includes/librarys_app.php'); ?>
 
 <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
 <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -53,10 +58,21 @@ else {
       $result = mysqli_query($conn,$diaryisEmpty);
       $count = mysqli_num_rows($result);
       if(isset($_GET['sil'])){
-        $id = $_GET['sil'];
-        $sql = "DELETE FROM feeds WHERE id=$id";
-        if ($conn->query($sql,) === TRUE) {
-          
+        if(!isset($_GET['csrf']) || !csrfTokenValid($_GET['csrf'])){
+          header("Location:my-diary.php");
+          exit();
+        }
+        $id = (int) $_GET['sil'];
+        $sil_stmt = $conn->prepare("DELETE FROM feeds WHERE id = ? AND user_id = ?");
+        $sil_owner_id = (int) $im2alone_user['id'];
+        $sil_stmt->bind_param("ii", $id, $sil_owner_id);
+        if ($sil_stmt->execute() === TRUE) {
+          $post_deleted = $conn->affected_rows > 0;
+          $sil_stmt->close();
+          if ($post_deleted) { //begeni ve goruntulenme kayitlari da gitsin
+            mysqli_query($conn, "DELETE FROM feed_likes WHERE feed_id='$id'");
+            mysqli_query($conn, "DELETE FROM feed_views WHERE feed_id='$id'");
+          }
           header("refresh:3; location:admin-create.php");
         } else {
           echo "Admin can not deleted: " . $conn->error;
@@ -73,6 +89,12 @@ else {
       }
       else{
       $date = null;
+      //kendi avatarim (hardcoded placeholder yerine), taze DB'den al
+      $my_pp = "dist/img/img1.jpg";
+      $pp_q = mysqli_query($conn, "SELECT pp FROM users WHERE id='$user_id'");
+      if ($pp_q && ($pp_row = mysqli_fetch_row($pp_q)) && $pp_row[0] != "") {
+        $my_pp = $pp_row[0];
+      }
       $sonuc=mysqli_query($conn,"SELECT * FROM feeds WHERE user_id ='$user_id' ORDER BY id DESC");
       while($satir=mysqli_fetch_array($sonuc))
       {
@@ -81,18 +103,21 @@ else {
         echo "<div class='info-box'>";
         echo "<div class='box box-widget'>";
         echo    "<div class='box-header with-border'>";
-        echo      "<div class='user-block'> <img class='img-circle' src='dist/img/img1.jpg' alt='User Image'> <span class='username'><a href='#'>",$im2alone_user['username'],"</a></span> <span class='description'>",$date,"</span> </div>";
+        echo      "<div class='user-block'> <img class='img-circle' src='$my_pp' alt='User Image'> <span class='username'><a href='#'>",$im2alone_user['username'],"</a></span> <span class='description'>",$date,"</span> </div>";
         echo    "</div>";
-        echo    "<div class='box-body pad'><br>",$satir['content'];
+        echo    "<div class='box-body pad'>",sanitizeDiaryHtml($satir['content']);
         if($satir['link']!=""){
           $link = $satir['link'];
           $link = str_replace("track/","embed/track/",$link);
-         
+          $link = htmlspecialchars($link, ENT_QUOTES);
+
           echo "<iframe style='border-radius:12px' src='",
           $link,
           "?utm_source=generator' height='80' frameBorder='0' allowfullscreen='' allow='autoplay; clipboard-write; encrypted-media; fullscreen; '></iframe>"  ;
         }
-        echo "<br><a href='?sil=" ,$satir['id'],"' class='btn btn-rounded btn-danger btn-outline btn-sm'>Delete</a></div>";
+        echo "<br><a href='?sil=" ,$satir['id'],"&csrf=",htmlspecialchars(csrfToken(), ENT_QUOTES),"' class='btn btn-rounded btn-danger btn-outline btn-sm'>Delete</a></div>";
+        $stats = getFeedStats($conn, $satir['id'], $user_id);
+        echo feedActionsHtml($stats, $satir['id'], false); //kendi postun, sadece sayaclar
         echo    "</div>";
         echo    "</div>";
         

@@ -1,8 +1,19 @@
 <?php
+require_once('includes/csrf.php');
 $im2alone_user = $_SESSION["im2alone_user"];
-$my_id = $im2alone_user['id'];
+$my_id = (int) $im2alone_user['id'];
 $pp = $im2alone_user['pp'];
 if($pp=="") {$pp="dist/img/img1.jpg";}
+
+//notification state: the bell only animates when there is something unread
+$unread_notif_q = mysqli_query($conn, "SELECT COUNT(*) FROM friend_request WHERE receiver='$my_id' AND is_read=0");
+$unread_notif_row = mysqli_fetch_row($unread_notif_q);
+$unread_notif_count = $unread_notif_row ? (int) $unread_notif_row[0] : 0;
+
+//email confirm state: session can be stale (user may confirm mid-session), check fresh
+$verify_q = mysqli_query($conn, "SELECT status FROM users WHERE id='$my_id'");
+$verify_row = mysqli_fetch_row($verify_q);
+$email_unverified = ($verify_row && (int) $verify_row[0] == 0);
 ?>
 <a href="index.php" class="logo blue-bg"> 
     <!-- mini logo for sidebar mini 50x50 pixels --> 
@@ -30,10 +41,10 @@ if($pp=="") {$pp="dist/img/img1.jpg";}
          
           <!-- Notifications: style can be found in dropdown.less -->
           <li class="dropdown messages-menu"> <a href="#" class="dropdown-toggle" data-toggle="dropdown"> <i class="fa fa-bell-o"></i>
-            <div class="notify"> <span class="heartbit"></span> <span class="point"></span> </div>
+            <?php if ($unread_notif_count > 0) { echo '<div class="notify"> <span class="heartbit"></span> <span class="point"></span> </div>'; } ?>
             </a>
             <ul class="dropdown-menu">
-              <li class="header">Notifications</li>
+              <li class="header">Notifications<?php if ($unread_notif_count > 0) { echo '<a href="#" id="notif-mark-read" class="notif-mark-read">Mark all as read</a>'; } ?></li>
               <li>
                 <ul class="menu">
                 <?php
@@ -85,8 +96,6 @@ if($pp=="") {$pp="dist/img/img1.jpg";}
               </li>
               <li><a href="user_detail.php?username=<?=$im2alone_user['username']?>"><i class="icon-profile-male"></i> My Profile</a></li>
               <li><a href="social_settings.php"><i class="fa fa-users"></i> Social Settings</a></li>
-              <li><a href="#"><i class="icon-envelope"></i> Inbox</a></li>
-              <li role="separator" class="divider"></li>
               <li><a href="profile-page.php"><i class="icon-gears"></i> Account Setting</a></li>
               <li role="separator" class="divider"></li>
               <li><a href="logout.php"><i class="fa fa-power-off"></i> Logout</a></li>
@@ -95,6 +104,57 @@ if($pp=="") {$pp="dist/img/img1.jpg";}
         </ul>
       </div>
     </nav>
+    <input type="hidden" id="app-csrf-token" value="<?= csrfToken() ?>">
+    <?php if ($email_unverified) { ?>
+    <div class="verify-banner" id="verify-banner">
+      <i class="fa fa-envelope-o"></i>
+      <span id="verify-banner-text">Your email address is not confirmed yet.</span>
+      <a href="#" id="verify-resend" class="btn btn-primary btn-rounded btn-sm">Resend confirmation email</a>
+    </div>
+    <?php } ?>
+    <script>
+    //resend the confirmation mail from the banner
+    document.addEventListener('DOMContentLoaded', function () {
+      var resend = document.getElementById('verify-resend');
+      if (!resend) { return; }
+      resend.addEventListener('click', function (e) {
+        e.preventDefault();
+        resend.classList.add('disabled');
+        var fd = new FormData();
+        fd.append('csrf_token', '<?= csrfToken() ?>');
+        fetch('resend_verification.php', { method: 'POST', body: fd })
+          .then(function (r) { return r.json(); })
+          .then(function (res) {
+            document.getElementById('verify-banner-text').textContent = res.message;
+            if (res.success) { resend.remove(); }
+            else { resend.classList.remove('disabled'); }
+          })
+          .catch(function () { resend.classList.remove('disabled'); });
+      });
+    });
+    </script>
+    <script>
+    //mark all notifications as read without a page reload
+    document.addEventListener('DOMContentLoaded', function () {
+      var markRead = document.getElementById('notif-mark-read');
+      if (!markRead) { return; }
+      markRead.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation(); //keep the dropdown open
+        var fd = new FormData();
+        fd.append('csrf_token', '<?= csrfToken() ?>');
+        fetch('mark_notifications_read.php', { method: 'POST', body: fd })
+          .then(function (r) { return r.json(); })
+          .then(function (res) {
+            if (res.success) {
+              var notify = document.querySelector('.messages-menu .notify');
+              if (notify) { notify.remove(); }
+              markRead.remove();
+            }
+          });
+      });
+    });
+    </script>
   </header>
   <!-- Left side column. contains the logo and sidebar -->
   <aside class="main-sidebar"> 

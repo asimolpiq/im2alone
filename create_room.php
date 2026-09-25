@@ -1,15 +1,19 @@
 <?php require('includes/db_connect.php');
+require('includes/room_guard.php');
+require('includes/csrf.php');
 ob_start();
 session_start();
 if(!isset($_SESSION["im2alone_user"])){
-  
   header("Location:index.php");
+  exit();
 }
 else {
   $im2alone_user = $_SESSION["im2alone_user"];
   if($im2alone_user['permission']==0){
     header("Location:index.php");
+    exit();
   }
+  csrfToken();
 }
 ?>
 <!DOCTYPE html>
@@ -19,7 +23,7 @@ else {
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title>Room Create</title>
 <!-- Sabit Kütüphaneleri çektiğimiz yer -->
-<?php require('includes/librarys.php'); ?>
+<?php require('includes/librarys_app.php'); ?>
 <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
 <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
 <!--[if lt IE 9]>
@@ -67,6 +71,10 @@ else {
     {
       $room_name = $_POST['room_name'];
       $room_name = $room_name."_room";
+      if(!isCreatableRoomTable($conn, $room_name)){
+        echo "<div class='alert alert-danger' role='alert'>Invalid room name. </div>";
+      }
+      else{
       try{
         $room_create = mysqli_query($conn,"CREATE TABLE IF NOT EXISTS $room_name (id int NOT NULL AUTO_INCREMENT,username varchar(30) NOT NULL,message text NOT NULL,date varchar(70) NOT NULL,PRIMARY KEY(id))");
         if(isset($room_create)){
@@ -76,6 +84,7 @@ else {
     }
       catch(Exception $e){
           echo "Error: ".$e;
+      }
       }
     }
     ?>
@@ -99,13 +108,22 @@ else {
         <!-- tablo başlangıç -->
           <?php
             if(isset($_GET['roomname'])){
+              if(!isset($_GET['csrf']) || !csrfTokenValid($_GET['csrf'])){
+                header("Location:create_room.php");
+                exit();
+              }
               $roomname = $_GET['roomname'];
+              if(!isValidRoomTable($conn, $roomname)){
+                echo "Room delete failed: invalid room name";
+              }
+              else{
               $sql = "DROP TABLE $roomname";
-              if ($conn->query($sql,) === TRUE) {
+              if ($conn->query($sql) === TRUE) {
                 echo "<div class='alert alert-success' role='alert'>Room Deleted. </div>";
                 header("refresh:3; location:admin-create.php");
               } else {
                 echo "Room delete failed: " . $conn->error;
+              }
               }
             }
           ?>
@@ -130,7 +148,7 @@ else {
                         $room_new_name = str_replace("_room", "", $table_name);
                         echo '<tr>';
                         echo '<td>',$room_new_name,'</td>';
-                        echo "<td><a href='?roomname=" ,$table_name,"' class='btn btn-rounded btn-danger'>Delete</a></td>";
+                        echo "<td><a href='?roomname=" ,$table_name,"&csrf=",htmlspecialchars(csrfToken(), ENT_QUOTES),"' class='btn btn-rounded btn-danger'>Delete</a></td>";
                        }
                        
                     } 

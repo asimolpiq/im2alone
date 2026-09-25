@@ -1,0 +1,8 @@
+mysql-data/
+php-sessions/
+
+# kullanici yuklemeleri git'e girmesin, klasor yapisi (.htaccess) kalsin
+dist/diary_images/*
+!dist/diary_images/.htaccess
+dist/profile_pictures/*
+!dist/profile_pictures/.htaccess

@@ -4,6 +4,7 @@ session_start();
 ob_start();
 if(!isset($_SESSION['im2alone_user'])){
     header("Location:index.php");
+    exit();
 }
 $user = $_SESSION['im2alone_user'];
 $username = $user['username'];
@@ -18,6 +19,7 @@ if(mysqli_num_rows($chat_query)!=0){
     try{
         $leave_query = mysqli_query($conn,"DELETE FROM chat_online WHERE username='$username'");
         header("Location:rooms.php");
+        exit();
       }
       catch(Exception $e){
         print("Leave failed : $e");

@@ -1,8 +1,10 @@
-<?php require('includes/db_connect.php'); 
+<?php require('includes/db_connect.php');
+require('includes/csrf.php');
 ob_start();
 session_start();
 if(isset($_SESSION["im2alone_user"])){
   header("Location:dashboard.php");
+  exit();
 }
 function GetIP(){
   if(getenv("HTTP_CLIENT_IP")) {
@@ -48,6 +50,9 @@ function GetIP(){
     <p class="login-box-msg">Sign in to start your session</p>
 
     <?php
+    if (isset($_GET['deleted'])) {
+      echo "<div class='alert alert-success' role='alert'> Your account and all your data have been deleted. Goodbye! </div>";
+    }
     if (isset($_POST['login']))
     {
       $username = trim($_POST['username']);
@@ -59,18 +64,44 @@ function GetIP(){
       $recive_password = htmlspecialchars($_POST['password']);
       $password = md5($recive_password);
       $password = md5($password);
-     
-      $sonuc=mysqli_query($conn,"select * from users WHERE username ='$username' and password='$password'");
+
+      $login_stmt = $conn->prepare("SELECT * FROM users WHERE username = ? AND password = ?");
+      $login_stmt->bind_param("ss", $username, $password);
+      $login_stmt->execute();
+      $sonuc = $login_stmt->get_result();
+      $login_stmt->close();
         if($sonuc ->num_rows>0){
           while($satir = $sonuc -> fetch_assoc()){
             if($username==$satir['username'] && $password==$satir['password']){
               echo "<div class='alert alert-success' role='alert'> Login Success! </div>";
-              $online_query = mysqli_query($conn,"UPDATE users SET online='1' WHERE username='$username'");
-              $userid=$satir['id'];
+              if((int)$satir['status']==0){
+                //mail dogrulanmamis ama giris engellenmiyor, iceride hatirlatacagiz
+                echo "<div class='alert alert-warning' role='alert'> Your email is not confirmed yet. We'll remind you inside. </div>";
+              }
+              $userid=(int)$satir['id'];
+              $online_stmt = $conn->prepare("UPDATE users SET online='1' WHERE username=?");
+              $online_stmt->bind_param("s", $username);
+              $online_stmt->execute();
+              $online_stmt->close();
               $ip_adresi = GetIP();
               $currentdate=  date("Y/m/d");
-              $online_query = mysqli_query($conn,"UPDATE log SET date='$currentdate' , ip='$ip_adresi' WHERE userid='$userid'");
+              //eski kullanicilarin log satiri hic acilmamis, yoksa once ac (UPDATE 0 satiri etkiliyordu)
+              $log_check = $conn->prepare("SELECT id FROM log WHERE userid=?");
+              $log_check->bind_param("i", $userid);
+              $log_check->execute();
+              $log_exists = $log_check->get_result()->num_rows > 0;
+              $log_check->close();
+              if ($log_exists) {
+                $log_stmt = $conn->prepare("UPDATE log SET date=? , ip=? WHERE userid=?");
+                $log_stmt->bind_param("ssi", $currentdate, $ip_adresi, $userid);
+              } else {
+                $log_stmt = $conn->prepare("INSERT INTO log (userid,date,ip) VALUES (?,?,?)");
+                $log_stmt->bind_param("iss", $userid, $currentdate, $ip_adresi);
+              }
+              $log_stmt->execute();
+              $log_stmt->close();
               $_SESSION["im2alone_user"] = $satir;
+              csrfToken();
                 header("Refresh: 2; url=dashboard.php");
             }
           }
@@ -96,7 +127,8 @@ function GetIP(){
         <!-- /.col -->
         <div class="col-xs-4 m-t-1">
           <button type="submit" name="login" class="btn btn-primary btn-block btn-flat">Login</button><br>
-          <a href="register.php" class="btn btn-primary btn-block btn-flat">Or Register?</a> 
+          <a href="register.php" class="btn btn-primary btn-block btn-flat">Or Register?</a>
+          <p class="text-center m-t-1"><small><a href="terms.php">Terms of Service</a> &middot; <a href="support.php">Support</a></small></p>
         </div>
       
   </div>

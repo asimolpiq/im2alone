@@ -24,7 +24,7 @@ if(isset($headers['Authorization'])){
         $result =  tokenLoginControl($conn,$token); //login kontrolü
     
         if($result != null){ //kullanıcı giriş yapmışsa
-            $delete_response = deleteDiary($conn,$diary_id); 
+            $delete_response = deleteDiary($conn,$diary_id,$result['id']);
     
             if ($delete_response ) {
                 echo json_encode(array("status" => "success","data"=>"Başarıyla silindi!"));

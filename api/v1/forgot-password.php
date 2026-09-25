@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
    if(!$isTokenExists){
     $token= bin2hex(random_bytes(16));
     try{
-        mysqli_query($conn,"INSERT INTO tokens(username,token) VALUES ('$username','$token')");
+        mysqli_query($conn,"INSERT INTO tokens(username,token,type) VALUES ('$username','$token','recovery')");
         echo json_encode(array("status" => "success","data"=>"Şifre yenileme mailiniz gönderildi"));
     }
     catch(Exception $e){

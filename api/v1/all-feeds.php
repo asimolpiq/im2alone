@@ -5,6 +5,7 @@ header('Content-Type: application/json');
 require('includes/auth/auth_functions.php');
 require('includes/utf8/utf8_converter.php');
 require('includes/diaries/diaries_functions.php');
+require('../../includes/feed_stats.php');
 require('../../includes/db_connect.php');
 
 // İstek POST isteği mi kontrol edin
@@ -15,7 +16,11 @@ if (isset($headers['Authorization'])) {
     if ($result != null) {
         $user_id = $result['id'];
         $diary_response = getAllFeed($conn, $user_id);
-        echo json_encode(array("status" => "success", "data" => utf8ize($diary_response)));
+        if (is_array($diary_response) && isset($diary_response['error'])) {
+            echo json_encode(array("status" => "error", "data" => $diary_response['error']));
+        } else {
+            echo json_encode(array("status" => "success", "data" => utf8ize($diary_response)));
+        }
     } else {
         echo json_encode(array("status" => "error", "data" => "Authorization error!"));
     }

@@ -1,0 +1,11 @@
+Options -Indexes
+# deny everything, then only allow real image extensions
+<FilesMatch ".*">
+  Require all denied
+</FilesMatch>
+<FilesMatch "\.(?i:jpe?g|png|gif|webp)$">
+  Require all granted
+</FilesMatch>
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+</IfModule>

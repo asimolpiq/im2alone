@@ -4,12 +4,23 @@ function getUserSearch($conn, $search_text, $my_id)
     try {
         if($search_text != ''){
             $arr = array();
-            $sorgu = "SELECT * FROM users WHERE username LIKE '%$search_text%'";
-            $sonuc = mysqli_query($conn, $sorgu);
-            $count = mysqli_num_rows($sonuc);
+            $my_id = (int) $my_id;
+            $stmt = $conn->prepare("SELECT * FROM users WHERE username LIKE ?");
+            $likeParam = '%' . $search_text . '%';
+            $stmt->bind_param("s", $likeParam);
+            $stmt->execute();
+            $sonuc = $stmt->get_result();
+            $count = $sonuc->num_rows;
             if ($count != 0) {
                 while ($satir = mysqli_fetch_array($sonuc)) {
                     $id = $satir['id'];
+                    if ($id == $my_id) {
+                        continue;
+                    }
+                    $isBlockedQuery = mysqli_query($conn, "SELECT id FROM blockeduser WHERE (userid1='$id' AND userid2='$my_id') OR (userid1='$my_id' AND userid2='$id')");
+                    if (mysqli_num_rows($isBlockedQuery) > 0) {
+                        continue;
+                    }
                     $isFriendQuery = mysqli_query($conn, "SELECT * FROM friends WHERE (userid1='$id' AND userid2='$my_id') OR (userid1='$my_id' AND userid2='$id')");
                     $isFriendCount = mysqli_num_rows($isFriendQuery);
                     if ($isFriendCount == 0) {

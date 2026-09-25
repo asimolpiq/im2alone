@@ -44,7 +44,7 @@ require('PHPMailer/PHPMailer.php');
         $email = htmlspecialchars($_POST['email']);
 
         $user_exists = mysqli_query($conn,"SELECT * FROM users WHERE username='$username' AND email='$email'");
-        $token_exists = mysqli_query($conn,"SELECT * FROM tokens WHERE username='$username'");
+        $token_exists = mysqli_query($conn,"SELECT * FROM tokens WHERE username='$username' AND type='recovery'");
         if(mysqli_num_rows($user_exists)==0){
             echo "<div class='alert alert-danger' role='alert'> User not found! </div>";
         }
@@ -80,7 +80,7 @@ require('PHPMailer/PHPMailer.php');
                 if(!$mail->Send()){
                     echo "Mailer Error: ".$mail->ErrorInfo;
                 } else {
-                mysqli_query($conn,"INSERT INTO tokens(username,token) VALUES ('$username','$token')");
+                mysqli_query($conn,"INSERT INTO tokens(username,token,type) VALUES ('$username','$token','recovery')");
                 echo "<div class='alert alert-success' role='alert'> Recovery Mail Sended! </div>";
                 header('Refresh:3; url=index.php');
                 }

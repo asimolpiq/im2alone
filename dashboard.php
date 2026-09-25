@@ -1,8 +1,11 @@
 <?php require('includes/db_connect.php');
+require('includes/html_sanitizer.php');
+require('includes/feed_stats.php');
 ob_start();
 session_start();
 if (!isset($_SESSION["im2alone_user"])) {
   header("Location:index.php");
+  exit();
 } else {
   $im2alone_user = $_SESSION["im2alone_user"];
 }
@@ -15,7 +18,7 @@ if (!isset($_SESSION["im2alone_user"])) {
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>Dashboard</title>
-  <?php require('includes/librarys.php'); ?>
+  <?php require('includes/librarys_app.php'); ?>
 
   <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
   <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -77,13 +80,14 @@ if (!isset($_SESSION["im2alone_user"])) {
           
         }
       } else { //ı dont have a friend :(
-        echo "<div class='card'>
-              <div class='card-body'>
-                <h4 class='card-title'>You Have Not a Friend</h4>
-                <p class='card-text'><strong>im2alone</strong> lets you keep your feelings in a diary.<br> All the posts you write will be stored according to the privacy you specify.</p>
-                <a href='write-diary.php' class='btn btn-primary'>Let's write first diary post!</a>";
+        echo "<div class='col-lg-2'></div><div class='col-lg-8'><div class='card'>
+              <div class='card-body user-list-empty'>
+                <i class='ti ti-face-smile'></i>
+                <p>You have no friends yet</p>
+                <span><strong>im2alone</strong> lets you keep your feelings in a diary. All the posts you write are stored with the privacy you choose.</span>
+                <div class='empty-cta'><a href='write-diary.php' class='btn btn-primary btn-rounded'>Let's write the first diary post!</a></div>";
         echo    "</div>";
-        echo    "</div>";
+        echo    "</div></div><div class='col-lg-2'></div>";
       }
 
       function sort_date($key) //array date sort function
@@ -99,12 +103,13 @@ if (!isset($_SESSION["im2alone_user"])) {
         };
       }
       if ($arr == null) { //my friend post is empty?
-        echo "<div class='card'>
-            <div class='card-body'>
-              <h4 class='card-title'>Your Friend Not Have a Post!</h4>
-              <p class='card-text'><strong>im2alone</strong> lets you keep your feelings in a diary.<br> All the posts you write will be stored according to the privacy you specify.</p>";
+        echo "<div class='col-lg-2'></div><div class='col-lg-8'><div class='card'>
+            <div class='card-body user-list-empty'>
+              <i class='ti ti-book'></i>
+              <p>Your friends haven't posted yet</p>
+              <span><strong>im2alone</strong> lets you keep your feelings in a diary. When your friends share a diary, it will show up here.</span>";
         echo    "</div>";
-        echo    "</div>";
+        echo    "</div></div><div class='col-lg-2'></div>";
       } 
       else {
       $column = sort_date('id');
@@ -125,26 +130,30 @@ if (!isset($_SESSION["im2alone_user"])) {
         $uzunluk = strlen($content);
         $limit =800;
         if($uzunluk>$limit){
-          $content = substr($content,0,$limit);
+          $content = mb_substr($content,0,$limit); //mb: dont cut a utf8 char in half
         }
-        echo  "<div class='col-lg-3'>";
+        $privacy_text = $post_rows['privacy']==2 ? "Everyone" : "Friends";
+        $privacy_icon = $post_rows['privacy']==2 ? "ti-world" : "ti-user";
+        echo  "<div class='col-lg-2'>";
         echo     "</div>";
-        echo  "<div class='col-lg-6 m-b-3'> ";
+        echo  "<div class='col-lg-8 m-b-3'> ";
         echo "<div class='info-box'>";
         echo "<div class='box box-widget '>";
         echo    "<div class='box-header with-border'>";
         echo      "<div class='user-block'> <img class='img-circle' src='$pp' alt='User Image'> <span class='username'><a href='user_detail.php?username=",$friend_name,"'>", $friend_name, "</a></span> <span class='description'>", $date, "</span> </div>";
+        echo      "<span class='feed-privacy'><i class='ti $privacy_icon'></i> $privacy_text</span>";
         echo    "</div>";
         echo    "<div class='box-body pad'>";
         if($uzunluk>$limit){
-          echo $content."...";
+          echo sanitizeDiaryHtml($content)."...";
         }
         else{
-          echo $content;
+          echo sanitizeDiaryHtml($content);
         }
         if ($post_rows['link'] != "") {
           $link = $post_rows['link'];
           $link = str_replace("track/", "embed/track/", $link);
+          $link = htmlspecialchars($link, ENT_QUOTES);
 
           echo "<p><br><iframe style='border-radius:12px' src='",
           $link,
@@ -155,10 +164,13 @@ if (!isset($_SESSION["im2alone_user"])) {
           echo  "<a href='post_detail.php?id=$post_id&username=$friend_name' class='btn btn-primary pull-right'>Show More</a>";
         }
         echo     "</div>";
+        recordFeedView($conn, $post_rows['id'], $user_id, $friendid);
+        $stats = getFeedStats($conn, $post_rows['id'], $user_id);
+        echo feedActionsHtml($stats, $post_rows['id'], true);
         echo     "</div>";
         echo    "</div>";
         echo    "</div>";
-        echo  "<div class='col-lg-3'>";
+        echo  "<div class='col-lg-2'>";
         echo     "</div>";
         
       }

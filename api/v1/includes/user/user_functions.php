@@ -1,7 +1,120 @@
 <?php
+function isBlocked($conn, $userID1, $userID2)
+{
+    $userID1 = (int) $userID1;
+    $userID2 = (int) $userID2;
+    $query = "SELECT id FROM blockeduser WHERE (userid1='$userID1' AND userid2='$userID2') OR (userid1='$userID2' AND userid2='$userID1')";
+    $result = $conn->query($query);
+    return $result && $result->num_rows > 0;
+}
+
+function blockUser($conn, $myID, $targetID)
+{
+    try {
+        $myID = (int) $myID;
+        $targetID = (int) $targetID;
+        if ($myID == $targetID) {
+            return false;
+        }
+        if (isBlocked($conn, $myID, $targetID)) {
+            return true;
+        }
+        $conn->query("DELETE FROM friends WHERE (userid1='$myID' AND userid2='$targetID') OR (userid1='$targetID' AND userid2='$myID')");
+        $conn->query("DELETE FROM friend_request WHERE (sender='$myID' AND receiver='$targetID') OR (sender='$targetID' AND receiver='$myID')");
+        $insert = "INSERT INTO blockeduser (userid1,userid2) VALUES ('$myID','$targetID')";
+        return (bool) $conn->query($insert);
+    } catch (Exception $e) {
+        return false;
+    }
+}
+
+function unblockUser($conn, $myID, $targetID)
+{
+    try {
+        $myID = (int) $myID;
+        $targetID = (int) $targetID;
+        $delete = "DELETE FROM blockeduser WHERE userid1='$myID' AND userid2='$targetID'";
+        return (bool) $conn->query($delete);
+    } catch (Exception $e) {
+        return false;
+    }
+}
+
+function getBlockedUsers($conn, $myID)
+{
+    $myID = (int) $myID;
+    $blocked = array();
+    $result = $conn->query("SELECT userid2 FROM blockeduser WHERE userid1='$myID'");
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $userResult = $conn->query("SELECT id, username, pp FROM users WHERE id='" . (int) $row['userid2'] . "'");
+            if ($userResult && $userResult->num_rows === 1) {
+                $user = $userResult->fetch_assoc();
+                $blocked[] = array(
+                    "id" => $user['id'],
+                    "username" => $user['username'],
+                    "pp" => $user['pp'] == "" ? null : $user['pp'],
+                );
+            }
+        }
+    }
+    return $blocked;
+}
+
+function getFollowers($conn, $myID)
+{
+    //takipci: bana istek gonderip benim kabul ettigim kisiler (userid1=beni kabul eden, userid2=orijinal gonderen)
+    $myID = (int) $myID;
+    $followers = array();
+    $result = $conn->query("SELECT userid2 FROM friends WHERE userid1='$myID'");
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $userResult = $conn->query("SELECT id, username, pp, bio FROM users WHERE id='" . (int) $row['userid2'] . "'");
+            if ($userResult && $userResult->num_rows === 1) {
+                $user = $userResult->fetch_assoc();
+                $followers[] = array(
+                    "id" => $user['id'],
+                    "username" => $user['username'],
+                    "pp" => $user['pp'] == "" ? null : $user['pp'],
+                    "bio" => $user['bio'],
+                );
+            }
+        }
+    }
+    return $followers;
+}
+
+function getFollowing($conn, $myID)
+{
+    //takip: benim istek gonderip karsi tarafin kabul ettigi kisiler (userid2=beni kabul eden karsi taraf degil, ben; userid1=beni kabul eden)
+    $myID = (int) $myID;
+    $following = array();
+    $result = $conn->query("SELECT userid1 FROM friends WHERE userid2='$myID'");
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $userResult = $conn->query("SELECT id, username, pp, bio FROM users WHERE id='" . (int) $row['userid1'] . "'");
+            if ($userResult && $userResult->num_rows === 1) {
+                $user = $userResult->fetch_assoc();
+                $following[] = array(
+                    "id" => $user['id'],
+                    "username" => $user['username'],
+                    "pp" => $user['pp'] == "" ? null : $user['pp'],
+                    "bio" => $user['bio'],
+                );
+            }
+        }
+    }
+    return $following;
+}
+
 function addFriend($conn, $myID, $friendID)
 {
     try {
+        $myID = (int) $myID;
+        $friendID = (int) $friendID;
+        if (isBlocked($conn, $myID, $friendID)) {
+            return false;
+        }
         $isFriendExists = "SELECT * FROM friends WHERE (userid1='$myID' AND userid2='$friendID') OR (userid1='$friendID' AND userid2='$myID')";
         $friendExistsResult = $conn->query($isFriendExists);
         if ($friendExistsResult->num_rows > 0) {
@@ -27,6 +140,8 @@ function addFriend($conn, $myID, $friendID)
 function deleteFriend($conn, $myID, $friendID)
 {
     try {
+        $myID = (int) $myID;
+        $friendID = (int) $friendID;
         $isFriendExists = "SELECT * FROM friends WHERE (userid1='$myID' AND userid2='$friendID') OR (userid1='$friendID' AND userid2='$myID')";
         $friendExistsResult = $conn->query($isFriendExists);
         if ($friendExistsResult->num_rows === 0) {
@@ -44,6 +159,7 @@ function deleteFriend($conn, $myID, $friendID)
 }
 
 function getNotifications($conn,$myID){
+    $myID = (int) $myID;
     $sonuc=mysqli_query($conn,"SELECT * FROM friend_request WHERE receiver='$myID'");
     $count = $sonuc->num_rows;
     if($count==0){
@@ -80,6 +196,7 @@ function getUserStats($conn,$user_id){
     if($user_id == "null"){
         return null;
     }
+    $user_id = (int) $user_id;
     try{
         $diary_count = mysqli_query($conn,"SELECT * FROM feeds WHERE user_id='$user_id'");
         $diary_count = $diary_count->num_rows;
@@ -101,24 +218,58 @@ function getUserStats($conn,$user_id){
    
 }
 
-function editProfile($conn,$username, $fullname, $bio, $userID){
-    try{
-        $update = "UPDATE users SET username='$username',realname='$fullname',bio='$bio' WHERE id='$userID'";
-        if($conn->query($update)){
-            return true;
+function editProfile($conn, $username, $fullname, $email, $gender, $birthday, $bio, $userID)
+{
+    try {
+        $userIDInt = (int) $userID;
+
+        //aynı kurallar web'deki profile-page.php'de
+        if (!preg_match('/^[0-9A-Za-z_]+$/', $username) || !preg_match('/^[\p{L}0-9_ ]+$/u', $fullname)) {
+            return array("success" => false, "message" => "invalid_characters");
         }
-        else{
-            return false;
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return array("success" => false, "message" => "invalid_email");
         }
-    }
-    catch(Exception $e){
-        return false;
+
+        $username_stmt = $conn->prepare("SELECT id FROM users WHERE username=? AND id<>?");
+        $username_stmt->bind_param("si", $username, $userIDInt);
+        $username_stmt->execute();
+        $usernameTaken = $username_stmt->get_result()->num_rows > 0;
+        $username_stmt->close();
+        if ($usernameTaken) {
+            return array("success" => false, "message" => "username_taken");
+        }
+
+        $email_stmt = $conn->prepare("SELECT id FROM users WHERE email=? AND id<>?");
+        $email_stmt->bind_param("si", $email, $userIDInt);
+        $email_stmt->execute();
+        $emailTaken = $email_stmt->get_result()->num_rows > 0;
+        $email_stmt->close();
+        if ($emailTaken) {
+            return array("success" => false, "message" => "email_taken");
+        }
+
+        $genderInt = (int) $gender;
+        $stmt = $conn->prepare("UPDATE users SET username=?, realname=?, email=?, gender=?, birthday=?, bio=? WHERE id=?");
+        if (!$stmt) {
+            return array("success" => false, "message" => "server_error");
+        }
+        $stmt->bind_param("sssissi", $username, $fullname, $email, $genderInt, $birthday, $bio, $userIDInt);
+        $success = $stmt->execute();
+        $stmt->close();
+        if ($success) {
+            return array("success" => true);
+        }
+        return array("success" => false, "message" => "server_error");
+    } catch (Exception $e) {
+        return array("success" => false, "message" => "server_error");
     }
 }
 
 function changePassword($conn,$new_password,$userID){
     try{
         $new_password = md5(md5($new_password));
+        $userID = (int) $userID;
         $update = "UPDATE users SET password='$new_password' WHERE id='$userID'";
         if($conn->query($update)){
             return true;
@@ -134,6 +285,8 @@ function changePassword($conn,$new_password,$userID){
 
 function acceptFriend($conn,$friend_id,$my_id){
     try{
+        $friend_id = (int) $friend_id;
+        $my_id = (int) $my_id;
         $sonuc=mysqli_query($conn,"SELECT id FROM friend_request WHERE receiver='$my_id' AND sender= '$friend_id'");
         while($satir=mysqli_fetch_array($sonuc))
         {
@@ -155,6 +308,8 @@ function acceptFriend($conn,$friend_id,$my_id){
 
 function ignoreUser($conn,$friend_id,$my_id){
     try{
+        $friend_id = (int) $friend_id;
+        $my_id = (int) $my_id;
         $sonuc=mysqli_query($conn,"SELECT id FROM friend_request WHERE receiver='$my_id' AND sender= '$friend_id'");
         while($satir=mysqli_fetch_array($sonuc))
         {

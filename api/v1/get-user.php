@@ -17,7 +17,7 @@ if(isset($headers['Authorization'])){
             echo json_encode(array("status" => "success", "data" => utf8ize($result)));
         } else {
             // Giriş başarısız olursa hata ile yanıt veriyoruz
-            echo json_encode(array("status" => "error", "data" => "unauthorized"));
+            echo json_encode(array("status" => "error", "error" => "unauthorized"));
         }
    
 } else {

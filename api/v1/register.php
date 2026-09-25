@@ -9,6 +9,11 @@ header('Content-Type: application/json');
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $data = json_decode(file_get_contents('php://input'), true); 
   if(isset($data['username']) && isset($data['realname']) && isset($data['email']) && isset($data['password'])  && isset($data['birthday'])&& isset($data['gender'])){
+  if(!isset($data['eulaAccepted']) || $data['eulaAccepted'] !== true){
+    echo json_encode(array("status" => "error", "data" => "Kullanım Şartları'nı kabul etmelisiniz."));
+    $conn->close();
+    exit();
+  }
   // İstekten verileri alın
 
   $username = trim($data['username']);
@@ -23,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $email = strip_tags($data['email']);
   $email = htmlspecialchars($data['email']);
  
-  $gender = $data['gender'];
+  $gender = intval($data['gender']);
 
   $recive_password = trim($data['password']);
   $recive_password = strip_tags($data['password']);
@@ -32,7 +37,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $password = md5($password);
 
 
-  $birthday = date('d/m/Y', strtotime($data['birthday']));
+  $birthdayDate = DateTime::createFromFormat('d/m/Y', $data['birthday']);
+  $birthday = $birthdayDate !== false ? $birthdayDate->format('d/m/Y') : $data['birthday'];
 
   
   $error = userAllreadyRegister($conn,$email,$username);
@@ -43,9 +49,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $tokenLength = 32; // Örnek olarak, 32 karakterlik bir token oluşturuyoruz.
     $token = base64_encode(random_bytes($tokenLength)); 
     try{
-      $user_save = "INSERT INTO users (username,realname,password,email,gender,birthday,permission,status,token) 
-      VALUES ('$username','$realname','$password','$email','$gender','$birthday',0,0,'$token')";
-          if ($conn->query($user_save)) { 
+      $user_save = "INSERT INTO users (username,realname,password,email,gender,birthday,bio,permission,status,token,eula_accepted_at)
+      VALUES ('$username','$realname','$password','$email','$gender','$birthday','',0,0,'$token',NOW())";
+          if ($conn->query($user_save)) {
+            //login'deki UPDATE log calissin diye kullanicinin log satirini burada aciyoruz
+            $new_user_id = (int) $conn->insert_id;
+            $reg_ip = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : "";
+            $reg_date = date("Y/m/d");
+            $log_stmt = $conn->prepare("INSERT INTO log (userid,date,ip) VALUES (?,?,?)");
+            $log_stmt->bind_param("iss", $new_user_id, $reg_date, $reg_ip);
+            $log_stmt->execute();
+            $log_stmt->close();
             echo json_encode(array("status" => "success",'token' => $token));
           } else {
             echo json_encode(array("status" => "error",'data' => 'Kayıt Başarısız oldu!'));

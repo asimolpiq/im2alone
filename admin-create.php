@@ -1,15 +1,18 @@
 <?php require('includes/db_connect.php');
+require('includes/csrf.php');
 ob_start();
 session_start();
 if(!isset($_SESSION["im2alone_user"])){
-  
   header("Location:index.php");
+  exit();
 }
 else {
   $im2alone_user = $_SESSION["im2alone_user"];
   if($im2alone_user['permission']==0){
     header("Location:index.php");
+    exit();
   }
+  csrfToken();
 }
 ?>
 <!DOCTYPE html>
@@ -19,7 +22,7 @@ else {
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title>Admin Create</title>
 <!-- Sabit Kütüphaneleri çektiğimiz yer -->
-<?php require('includes/librarys.php'); ?>
+<?php require('includes/librarys_app.php'); ?>
 <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
 <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
 <!--[if lt IE 9]>
@@ -78,9 +81,12 @@ else {
       $status = $_POST['status'];
       $error = false;
 
-      $query = "SELECT username FROM users WHERE username='$username'";
-        $result = mysqli_query($conn,$query);
-        $count = mysqli_num_rows($result);
+      $dup_stmt = $conn->prepare("SELECT username FROM users WHERE username=?");
+        $dup_stmt->bind_param("s", $username);
+        $dup_stmt->execute();
+        $result = $dup_stmt->get_result();
+        $count = $result->num_rows;
+        $dup_stmt->close();
         if($count!=0){
           $error=true;
           echo "<div class='alert alert-danger' role='alert'> Username allready used dude :( </div>";
@@ -94,9 +100,11 @@ else {
            }
            else{
             if(!$error){
-              $admin_save = "INSERT INTO users (username,password,permission,status) VALUES ('$username','$password',1,'$status')";
+              $admin_save = $conn->prepare("INSERT INTO users (username,password,permission,status) VALUES (?,?,1,?)");
+              $status_int = (int) $status;
+              $admin_save->bind_param("ssi", $username, $password, $status_int);
 
-              if ($conn->query($admin_save)){
+              if ($admin_save->execute()){
               echo "<div class='alert alert-success' role='alert'> Admin Create Succesful! </div>";
               header("Refresh:3; url=admin-create.php");
               }
@@ -150,9 +158,15 @@ else {
         <!-- tablo başlangıç -->
           <?php
             if(isset($_GET['sil'])){
-              $id = $_GET['sil'];
-              $sql = "DELETE FROM users WHERE id=$id";
-              if ($conn->query($sql,) === TRUE) {
+              if(!isset($_GET['csrf']) || !csrfTokenValid($_GET['csrf'])){
+                header("Location:admin-create.php");
+                exit();
+              }
+              $id = (int) $_GET['sil'];
+              $sil_stmt = $conn->prepare("DELETE FROM users WHERE id=?");
+              $sil_stmt->bind_param("i", $id);
+              if ($sil_stmt->execute() === TRUE) {
+                $sil_stmt->close();
                 echo "<div class='alert alert-success' role='alert'> Admin Deleted. </div>";
                 header("refresh:3; location:admin-create.php");
               } else {
@@ -168,7 +182,6 @@ else {
                 <tr>
                 <th scope="col">İd</th>
                 <th scope="col">Username</th>
-                <th scope="col">Password</th>
                 <th scope="col">Permission Status</th>
                 <th scope="col">Edit</th>
                 </tr>
@@ -188,9 +201,8 @@ else {
                        echo '<tr>';
                        echo "<th scope='row'>",$satir['id'],"</th>";
                        echo '<td>',$satir['username'],'</td>';
-                       echo '<td>',$satir['password'],'</td>';
                        echo '<td>',$status,'</td>';
-                       echo "<td><a href='?sil=" ,$satir['id'],"' class='btn btn-rounded btn-danger'>Delete</a></td>";
+                       echo "<td><a href='?sil=" ,$satir['id'],"&csrf=",htmlspecialchars(csrfToken(), ENT_QUOTES),"' class='btn btn-rounded btn-danger'>Delete</a></td>";
                     }
 
                   ?>

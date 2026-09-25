@@ -1,9 +1,11 @@
 <?php
 require('includes/db_connect.php');
+require('includes/room_guard.php');
 ob_start();
 session_start();
 if(!isset($_SESSION["im2alone_user"])){
   header("Location:index.php");
+  exit();
 }
 else {
     $im2alone_user = $_SESSION["im2alone_user"];
@@ -14,8 +16,13 @@ else {
     }
   if (empty($_GET["name"])) {
       header("Location:index.php");
+      exit();
   } else {
       $name = $_GET["name"];
+      if(!isValidRoomTable($conn, $name)){
+        header("Location:rooms.php");
+        exit();
+      }
       $room_name = str_replace("_room", "", $name);
   }
   }
@@ -34,10 +41,13 @@ try{
             $count = mysqli_num_rows($get_pp);
             if($count!=0){
                $satir = mysqli_fetch_row($get_pp);
-               $pp = $satir[0]; 
+               $pp = $satir[0];
                if($pp==null){
                 $pp = "dist/img/img2.jpg";
-               } 
+               }
+            }
+            else{
+                $pp = "dist/img/img2.jpg"; //silinmis kullanici, onceki mesajin pp'si kalmasin
             }
 
             echo " 
@@ -58,7 +68,7 @@ try{
     }
   }
  else{
-     echo "<div class='text-center h1'><br>MessageBox is Empty<br><br></div>";
+     echo "<div class='user-list-empty'><i class='ti ti-comments'></i><p>No messages yet.</p><span>Say hi — start the conversation!</span></div>";
  }
 }
 catch(Exception $e){

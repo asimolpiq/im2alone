@@ -6,10 +6,12 @@ use PHPMailer\PHPMailer\Exception;
 require('PHPMailer/SMTP.php');
 require('PHPMailer/Exception.php');
 require('PHPMailer/PHPMailer.php');
+require('includes/mailer.php');
 ob_start();
 session_start();
 if (isset($_SESSION["im2alone_user"])) {
   header("Location:dashboard.php");
+  exit();
 }
 function GetIP()
 {
@@ -67,7 +69,7 @@ function GetIP()
         $email = strip_tags($_POST['email']);
         $email = htmlspecialchars($_POST['email']);
 
-        $gender = $_POST['gender'];
+        $gender = intval($_POST['gender']);
 
         $recive_password = trim($_POST['password']);
         $recive_password = strip_tags($_POST['password']);
@@ -107,7 +109,9 @@ function GetIP()
               echo "<div class='alert alert-danger' role='alert'> Username allready used dude :( </div>";
               header("Refresh:3; url=register.php");
             } else {
-              if (!preg_match('^[0-9A-Za-z_]+$^', $username) && !preg_match('^[0-9A-Za-z_]+$^', $realname)) {
+              //eski kontrol && ile ikisini birden istiyordu ve pattern basa demirli degildi,
+              //gecersiz username'ler kabul ediliyordu. || + anchored pattern sart.
+              if (!preg_match('/^[0-9A-Za-z_]+$/', $username) || !preg_match('/^[\p{L}0-9_ ]+$/u', $realname)) {
                 $error = true;
                 echo "<div class='alert alert-danger' role='alert'> Username or Realname must contain alphabets and space dude :( </div>";
                 header("Refresh:3; url=register.php");
@@ -121,11 +125,30 @@ function GetIP()
                   header("Refresh:3; url=register.php");
                 } else {
                   if (!$error) {//genel kontrollerden geçtiyse kaydet
-                    $user_save = "INSERT INTO users (username,realname,password,email,gender,birthday,permission,status) 
-                VALUES ('$username','$realname','$password','$email','$gender','$birthday',0,1)";
+                    $user_save = "INSERT INTO users (username,realname,password,email,gender,birthday,bio,permission,status,eula_accepted_at)
+                VALUES ('$username','$realname','$password','$email','$gender','$birthday','',0,0,NOW())";
                     if ($conn->query($user_save)) {
-                            echo "<div class='alert alert-success' role='alert'> User Create Succesful! </div>";
-                            header('Refresh:3; url=index.php');
+                            //login'deki UPDATE log calissin diye kullanicinin log satirini burada aciyoruz
+                            $new_user_id = (int) $conn->insert_id;
+                            $reg_ip = GetIP();
+                            $reg_date = date("Y/m/d");
+                            $log_stmt = $conn->prepare("INSERT INTO log (userid,date,ip) VALUES (?,?,?)");
+                            $log_stmt->bind_param("iss", $new_user_id, $reg_date, $reg_ip);
+                            $log_stmt->execute();
+                            $log_stmt->close();
+                            //confirm token + mail. mail patlarsa kayit bozulmaz,
+                            //giristen sonra tekrar gonderme sansi verecegiz
+                            $token = bin2hex(random_bytes(16));
+                            $token_stmt = $conn->prepare("INSERT INTO tokens(username,token,type) VALUES (?,?,'confirm')");
+                            $token_stmt->bind_param("ss", $username, $token);
+                            $token_stmt->execute();
+                            $token_stmt->close();
+                            if (sendConfirmationMail($email, $username, $token)) {
+                              echo "<div class='alert alert-success' role='alert'> User Create Succesful! Please check your email to confirm your account. </div>";
+                            } else {
+                              echo "<div class='alert alert-warning' role='alert'> User Create Succesful! We couldn't send the confirmation email right now — you can login and confirm it later. </div>";
+                            }
+                            header('Refresh:4; url=index.php');
                     } else {
                       echo "<div class='alert alert-danger' role='alert'> User Create Failed! </div>";
                       header("Refresh:3; url=register.php");
@@ -174,7 +197,7 @@ function GetIP()
             <div class="checkbox icheck">
               <label>
                 <input type="checkbox" value="1" name="terms" required>
-                I agree to all Terms </label>
+                I agree to the <a href="terms.php" target="_blank">Terms of Service</a></label>
             </div>
           </div>
           <!-- /.col -->
