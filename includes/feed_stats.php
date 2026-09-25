@@ -8,7 +8,11 @@ function recordFeedView($conn, $feed_id, $viewer_id, $owner_id)
     }
     $feed_id = (int) $feed_id;
     $viewer_id = (int) $viewer_id;
-    mysqli_query($conn, "INSERT IGNORE INTO feed_views (feed_id,user_id) VALUES ('$feed_id','$viewer_id')");
+    try {
+        mysqli_query($conn, "INSERT IGNORE INTO feed_views (feed_id,user_id) VALUES ('$feed_id','$viewer_id')");
+    } catch (Throwable $e) {
+        return;
+    }
 }
 
 function getFeedStats($conn, $feed_id, $viewer_id)
@@ -19,17 +23,21 @@ function getFeedStats($conn, $feed_id, $viewer_id)
     $views = 0;
     $liked = false;
 
-    $q = mysqli_query($conn, "SELECT COUNT(id) FROM feed_likes WHERE feed_id='$feed_id'");
-    if ($q && ($row = mysqli_fetch_row($q))) {
-        $likes = (int) $row[0];
-    }
-    $q = mysqli_query($conn, "SELECT COUNT(id) FROM feed_views WHERE feed_id='$feed_id'");
-    if ($q && ($row = mysqli_fetch_row($q))) {
-        $views = (int) $row[0];
-    }
-    $q = mysqli_query($conn, "SELECT id FROM feed_likes WHERE feed_id='$feed_id' AND user_id='$viewer_id'");
-    if ($q && mysqli_num_rows($q) > 0) {
-        $liked = true;
+    try {
+        $q = mysqli_query($conn, "SELECT COUNT(id) FROM feed_likes WHERE feed_id='$feed_id'");
+        if ($q && ($row = mysqli_fetch_row($q))) {
+            $likes = (int) $row[0];
+        }
+        $q = mysqli_query($conn, "SELECT COUNT(id) FROM feed_views WHERE feed_id='$feed_id'");
+        if ($q && ($row = mysqli_fetch_row($q))) {
+            $views = (int) $row[0];
+        }
+        $q = mysqli_query($conn, "SELECT id FROM feed_likes WHERE feed_id='$feed_id' AND user_id='$viewer_id'");
+        if ($q && mysqli_num_rows($q) > 0) {
+            $liked = true;
+        }
+    } catch (Throwable $e) {
+        return array("likes" => 0, "views" => 0, "liked" => false);
     }
     return array("likes" => $likes, "views" => $views, "liked" => $liked);
 }

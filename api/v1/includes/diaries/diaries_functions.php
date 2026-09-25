@@ -1,4 +1,6 @@
 <?php
+require_once(__DIR__ . '/../../../../includes/feed_stats.php');
+
 function getMyDiaries($conn, $user_id)
 {
   $user_id = (int) $user_id;

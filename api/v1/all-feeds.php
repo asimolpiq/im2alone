@@ -5,7 +5,6 @@ header('Content-Type: application/json');
 require('includes/auth/auth_functions.php');
 require('includes/utf8/utf8_converter.php');
 require('includes/diaries/diaries_functions.php');
-require('../../includes/feed_stats.php');
 require('../../includes/db_connect.php');
 
 // İstek POST isteği mi kontrol edin
