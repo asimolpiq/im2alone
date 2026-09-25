@@ -133,7 +133,8 @@ else {
     <!-- /.content --> 
   </div>
   <!-- /.content-wrapper -->
- <?php require('includes/footer.php'); ?>
+ <?php require('includes/birthday_confetti.php');
+ require('includes/footer.php'); ?>
 </div>
 <!-- ./wrapper --> 
 
